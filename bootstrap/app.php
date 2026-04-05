@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Middleware\CheckPermission;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,8 +16,68 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        /*
+        |------------------------------------------------------------------
+        | Middleware aliases
+        |------------------------------------------------------------------
+        */
+        $middleware->alias([
+            'permission' => CheckPermission::class,
+        ]);
+
+        /*
+        |------------------------------------------------------------------
+        | CSRF : exclure les routes API (token-based via Sanctum)
+        | Laravel 13 utilise PreventRequestForgery (anciennement ValidateCsrfToken)
+        |------------------------------------------------------------------
+        */
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })->create();
+        /*
+        |------------------------------------------------------------------
+        | Retourner du JSON pour toutes les erreurs sur /api/*
+        |------------------------------------------------------------------
+        */
+
+        // 401 Unauthenticated → JSON
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json(
+                    ['message' => 'Non authentifié.'],
+                    401
+                );
+            }
+        });
+
+        // 422 Validation → JSON structuré
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'errors'  => $e->errors(),
+                ], 422);
+            }
+        });
+
+        // 404 Not Found → JSON
+        $exceptions->render(
+            function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, Request $request) {
+                if ($request->is('api/*') || $request->expectsJson()) {
+                    return response()->json(['message' => 'Ressource introuvable.'], 404);
+                }
+            }
+        );
+
+        // 403 Forbidden → JSON
+        $exceptions->render(
+            function (\Illuminate\Auth\Access\AuthorizationException $e, Request $request) {
+                if ($request->is('api/*') || $request->expectsJson()) {
+                    return response()->json(['message' => 'Accès refusé.'], 403);
+                }
+            }
+        );
+    })
+    ->create();
