@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use OTPHP\TOTP;
 
 class UserController extends Controller
 {
@@ -197,8 +198,8 @@ class UserController extends Controller
         if ($user->tfa_enabled) {
             $user->update(['tfa_enabled' => false, 'tfa_secret' => null]);
         } else {
-            $secret = app(\OTPHP\TOTP::class)->getSecret();
-            $user->update(['tfa_enabled' => true, 'tfa_secret' => $secret]);
+            $totp = TOTP::create();
+            $user->update(['tfa_enabled' => true, 'tfa_secret' => $totp->getSecret()]);
         }
 
         return response()->json($user->only(['id', 'tfa_enabled']));
