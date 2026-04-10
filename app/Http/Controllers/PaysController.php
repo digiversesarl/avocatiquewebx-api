@@ -1,0 +1,111 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Pays;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class PaysController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $query = Pays::query()
+            ->when($request->filled('search'), fn ($q) => $q->where(function ($q) use ($request) {
+                $s = '%' . $request->search . '%';
+                $q->where('label_fr', 'like', $s)
+                  ->orWhere('label_ar', 'like', $s)
+                  ->orWhere('label_en', 'like', $s)
+                  ->orWhere('code', 'like', $s);
+            }))
+            ->when($request->filled('status'), function ($q) use ($request) {
+                if ($request->status === 'active') {
+                    return $q->where('is_active', true);
+                } elseif ($request->status === 'inactive') {
+                    return $q->where('is_active', false);
+                }
+                return $q;
+            })
+            ->orderBy('classement')
+            ->orderBy('id');
+
+        return response()->json($query->get());
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code'       => 'nullable|string|max:4|unique:pays,code',
+            'label_fr'   => 'required|string|max:255',
+            'label_ar'   => 'required|string|max:255',
+            'classement' => 'nullable|integer',
+            'is_default' => 'boolean',
+            'is_active'  => 'boolean',
+        ]);
+
+        $pays = Pays::create($data);
+
+        return response()->json($pays, 201);
+    }
+
+    public function show(Pays $pays): JsonResponse
+    {
+        return response()->json($pays->load('villes'));
+    }
+
+    public function update(Request $request, Pays $pays): JsonResponse
+    {
+        $data = $request->validate([
+            'code'       => 'nullable|string|max:4|unique:pays,code,' . $pays->id,
+            'label_fr'   => 'required|string|max:255',
+            'label_ar'   => 'required|string|max:255',
+            'classement' => 'nullable|integer',
+            'is_default' => 'boolean',
+            'is_active'  => 'boolean',
+        ]);
+
+        $pays->update($data);
+
+        return response()->json($pays);
+    }
+
+    public function destroy(Pays $pays): JsonResponse
+    {
+        $pays->delete();
+
+        return response()->json(['message' => 'Pays supprimé.']);
+    }
+
+    public function toggleActive(Pays $pays): JsonResponse
+    {
+        $pays->update(['is_active' => !$pays->is_active]);
+
+        return response()->json($pays);
+    }
+
+    public function duplicate(Pays $pays): JsonResponse
+    {
+        $copy = $pays->replicate();
+        $copy->label_fr = $pays->label_fr . ' (copie)';
+        $copy->code = null;
+        $copy->classement = Pays::max('classement') + 1;
+        $copy->save();
+
+        return response()->json($copy, 201);
+    }
+
+    public function reorder(Request $request): JsonResponse
+    {
+        $request->validate([
+            'items'   => 'required|array',
+            'items.*.id' => 'required|integer|exists:pays,id',
+            'items.*.classement' => 'required|integer',
+        ]);
+
+        foreach ($request->items as $item) {
+            Pays::where('id', $item['id'])->update(['classement' => $item['classement']]);
+        }
+
+        return response()->json(['message' => 'Ordre mis à jour.']);
+    }
+}

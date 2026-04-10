@@ -8,27 +8,32 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
     /**
      * GET /api/users
      *
-     * Liste paginée avec filtres optionnels : search, status, role.
+     * Liste paginée avec filtres : search, status, role, fonction, departement, groupe.
      */
     public function index(Request $request): JsonResponse
     {
-        $users = User::with('roles:id,name')
+        $users = User::with(['roles:id,name'])
             ->when(
                 $request->filled('search'),
                 fn ($q) => $q->where(function ($q) use ($request): void {
-                    $q->where('name', 'like', '%'.$request->search.'%')
-                      ->orWhere('email', 'like', '%'.$request->search.'%');
+                    $q->where('full_name_fr', 'like', "%{$request->search}%")
+                      ->orWhere('full_name_ar', 'like', "%{$request->search}%")
+                      ->orWhere('email', 'like', "%{$request->search}%")
+                      ->orWhere('matricule', 'like', "%{$request->search}%")
+                      ->orWhere('cin', 'like', "%{$request->search}%")
+                      ->orWhere('login', 'like', "%{$request->search}%");
                 })
             )
             ->when(
                 $request->filled('status'),
-                fn ($q) => $q->where('status', $request->status)
+                fn ($q) => $q->where('active', $request->status === 'active')
             )
             ->when(
                 $request->filled('role'),
@@ -37,7 +42,20 @@ class UserController extends Controller
                     fn ($rq) => $rq->where('name', $request->role)
                 )
             )
-            ->orderBy('name')
+            ->when(
+                $request->filled('fonction'),
+                fn ($q) => $q->where('fonction', $request->fonction)
+            )
+            ->when(
+                $request->filled('departement'),
+                fn ($q) => $q->where('departement', $request->departement)
+            )
+            ->when(
+                $request->filled('groupe'),
+                fn ($q) => $q->whereJsonContains('groupes', $request->groupe)
+            )
+            ->orderBy('classement')
+            ->orderBy('full_name_fr')
             ->paginate((int) ($request->per_page ?? 20));
 
         return response()->json($users);
@@ -48,20 +66,37 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request): JsonResponse
     {
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => $request->password,   // hashé via cast
-            'status'   => $request->status ?? 'active',
-        ]);
+        $data = $request->safe()->except(['roles', 'photo', 'attachments']);
 
+        // Photo upload
+        if ($request->hasFile('photo')) {
+            $data['photo'] = $request->file('photo')->store('personnel/photos', 'public');
+        }
+
+        $user = User::create($data);
+
+        // Sync roles
         if ($request->filled('roles')) {
             $user->roles()->sync(
                 Role::whereIn('name', $request->roles)->pluck('id')
             );
         }
 
-        return response()->json($user->load('roles:id,name'), 201);
+        // Attachments
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $user->attachments()->create([
+                    'name'      => $file->getClientOriginalName(),
+                    'type'      => $file->getClientMimeType(),
+                    'file_path' => $file->store('personnel/attachments', 'public'),
+                ]);
+            }
+        }
+
+        return response()->json(
+            $user->load(['roles:id,name', 'attachments']),
+            201
+        );
     }
 
     /**
@@ -69,7 +104,9 @@ class UserController extends Controller
      */
     public function show(User $user): JsonResponse
     {
-        return response()->json($user->load('roles:id,name'));
+        return response()->json(
+            $user->load(['roles:id,name', 'attachments'])
+        );
     }
 
     /**
@@ -77,27 +114,51 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        $data = $request->only(['name', 'email', 'status']);
+        $data = $request->safe()->except(['roles', 'photo', 'attachments']);
 
-        if ($request->filled('password')) {
-            $data['password'] = $request->password;
+        // Password : only update if provided
+        if (! $request->filled('password')) {
+            unset($data['password']);
+        }
+
+        // Photo upload
+        if ($request->hasFile('photo')) {
+            // Delete old photo
+            if ($user->photo) {
+                Storage::disk('public')->delete($user->photo);
+            }
+            $data['photo'] = $request->file('photo')->store('personnel/photos', 'public');
         }
 
         $user->update($data);
 
+        // Sync roles
         if ($request->has('roles')) {
             $user->roles()->sync(
                 Role::whereIn('name', $request->roles)->pluck('id')
             );
         }
 
-        return response()->json($user->load('roles:id,name'));
+        // New attachments
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $user->attachments()->create([
+                    'name'      => $file->getClientOriginalName(),
+                    'type'      => $file->getClientMimeType(),
+                    'file_path' => $file->store('personnel/attachments', 'public'),
+                ]);
+            }
+        }
+
+        return response()->json(
+            $user->load(['roles:id,name', 'attachments'])
+        );
     }
 
     /**
      * DELETE /api/users/{user}
      *
-     * Suppression douce (soft-delete). Impossible de se supprimer soi-même.
+     * Soft-delete. Impossible de se supprimer soi-même.
      */
     public function destroy(Request $request, User $user): JsonResponse
     {
@@ -108,8 +169,50 @@ class UserController extends Controller
             );
         }
 
+        // Clean photo
+        if ($user->photo) {
+            Storage::disk('public')->delete($user->photo);
+        }
+
         $user->delete();
 
         return response()->json(['message' => 'Utilisateur supprimé.']);
+    }
+
+    /**
+     * PATCH /api/users/{user}/toggle-active
+     */
+    public function toggleActive(User $user): JsonResponse
+    {
+        $user->update(['active' => ! $user->active]);
+
+        return response()->json($user);
+    }
+
+    /**
+     * PATCH /api/users/{user}/toggle-tfa
+     */
+    public function toggleTfa(User $user): JsonResponse
+    {
+        if ($user->tfa_enabled) {
+            $user->update(['tfa_enabled' => false, 'tfa_secret' => null]);
+        } else {
+            $secret = app(\OTPHP\TOTP::class)->getSecret();
+            $user->update(['tfa_enabled' => true, 'tfa_secret' => $secret]);
+        }
+
+        return response()->json($user->only(['id', 'tfa_enabled']));
+    }
+
+    /**
+     * DELETE /api/users/{user}/attachments/{attachment}
+     */
+    public function deleteAttachment(User $user, int $attachmentId): JsonResponse
+    {
+        $attachment = $user->attachments()->findOrFail($attachmentId);
+        Storage::disk('public')->delete($attachment->file_path);
+        $attachment->delete();
+
+        return response()->json(['message' => 'Pièce jointe supprimée.']);
     }
 }

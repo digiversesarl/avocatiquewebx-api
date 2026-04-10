@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -13,55 +14,63 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
-    /**
-     * Champs mass-assignable.
-     */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'status',
+        'matricule', 'email', 'full_name_fr', 'full_name_ar',
+        'abbreviation_fr', 'abbreviation_ar', 'photo',
+        'fonction', 'grade_avocat', 'departement', 'avocat_proprietaire',
+        'address_fr', 'address_ar', 'telephone',
+        'langue', 'rib', 'cin', 'date_entree',
+        'valeur_par_defaut', 'classement', 'active',
+        'couleur_fond', 'couleur_texte',
+        'tarif_journalier', 'observation',
+        'login', 'password', 'is_admin',
+        'tfa_enabled', 'tfa_secret', 'status',
     ];
 
-    /**
-     * Champs cachés dans la sérialisation.
-     */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'password', 'remember_token', 'tfa_secret',
     ];
 
-    /**
-     * Casts — PHP 8.3 : syntaxe array retournée depuis méthode.
-     */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'email_verified_at'   => 'datetime',
+            'date_entree'         => 'date',
+            'password'            => 'hashed',
+            'active'              => 'boolean',
+            'is_admin'            => 'boolean',
+            'valeur_par_defaut'   => 'boolean',
+            'avocat_proprietaire' => 'boolean',
+            'tfa_enabled'         => 'boolean',
+            'tarif_journalier'    => 'decimal:2',
         ];
     }
-
-    // ── Relations ─────────────────────────────────────────────────────────
 
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'user_role');
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
+    public function groupes(): BelongsToMany
+    {
+        return $this->belongsToMany(Groupe::class, 'user_groupe');
+    }
 
-    /**
-     * Vérifie si l'utilisateur possède un rôle donné.
-     */
+    public function departements(): BelongsToMany
+    {
+        return $this->belongsToMany(Departement::class, 'user_departement');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(UserAttachment::class);
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->roles()->where('name', $role)->exists();
     }
 
-    /**
-     * Vérifie si l'utilisateur a une permission donnée (via ses rôles).
-     */
     public function hasPermission(string $permission): bool
     {
         return $this->roles()
@@ -69,20 +78,12 @@ class User extends Authenticatable
             ->exists();
     }
 
-    /**
-     * Retourne toutes les permissions de l'utilisateur (dédupliquées).
-     *
-     * @return array<string>
-     */
     public function allPermissions(): array
     {
         return $this->roles()
             ->with('permissions:id,name')
             ->get()
             ->flatMap(fn (Role $role) => $role->permissions->pluck('name'))
-            ->unique()
-            ->sort()
-            ->values()
-            ->all();
+            ->unique()->sort()->values()->all();
     }
 }

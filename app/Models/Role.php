@@ -2,22 +2,24 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Role extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
-        'display_name',
-        'description',
+        'level',
     ];
 
-    // ── Relations ─────────────────────────────────────────────────────────
-
-    public function permissions(): BelongsToMany
+    protected function casts(): array
     {
-        return $this->belongsToMany(Permission::class, 'role_permission');
+        return [
+            'level' => 'integer',
+        ];
     }
 
     public function users(): BelongsToMany
@@ -25,8 +27,8 @@ class Role extends Model
         return $this->belongsToMany(User::class, 'user_role');
     }
 
-    public function menuItems(): BelongsToMany
+    public function permissions(): BelongsToMany
     {
-        return $this->belongsToMany(MenuItem::class, 'menu_item_role');
+        return $this->belongsToMany(Permission::class, 'role_permission');
     }
 }

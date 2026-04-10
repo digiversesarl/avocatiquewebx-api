@@ -94,7 +94,7 @@ class AuthController extends Controller
 
         return [
             'id'          => $user->id,
-            'name'        => $user->name,
+            'name'        => $user->login ?? $user->full_name_fr ?? $user->email,
             'email'       => $user->email,
             'status'      => $user->status,
             'roles'       => $user->roles->pluck('name'),
