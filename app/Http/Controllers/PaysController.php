@@ -10,7 +10,7 @@ class PaysController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Pays::query()
+        $query = Pays::select('id', 'code', 'label_fr', 'label_ar', 'label_en', 'classement', 'is_active', 'is_default', 'bg_color', 'text_color', 'created_at', 'updated_at')
             ->when($request->filled('search'), fn ($q) => $q->where(function ($q) use ($request) {
                 $s = '%' . $request->search . '%';
                 $q->where('label_fr', 'like', $s)
@@ -35,12 +35,15 @@ class PaysController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'code'       => 'nullable|string|max:4|unique:pays,code',
+            'code'       => 'required|string|max:4|unique:pays,code',
             'label_fr'   => 'required|string|max:255',
             'label_ar'   => 'required|string|max:255',
+            'label_en'   => 'required|string|max:255',
             'classement' => 'nullable|integer',
             'is_default' => 'boolean',
             'is_active'  => 'boolean',
+            'bg_color'   => 'nullable|string|max:20',
+            'text_color' => 'nullable|string|max:20',
         ]);
 
         $pays = Pays::create($data);
@@ -56,12 +59,15 @@ class PaysController extends Controller
     public function update(Request $request, Pays $pays): JsonResponse
     {
         $data = $request->validate([
-            'code'       => 'nullable|string|max:4|unique:pays,code,' . $pays->id,
+            'code'       => 'required|string|max:4|unique:pays,code,' . $pays->id,
             'label_fr'   => 'required|string|max:255',
             'label_ar'   => 'required|string|max:255',
+            'label_en'   => 'required|string|max:255',
             'classement' => 'nullable|integer',
             'is_default' => 'boolean',
             'is_active'  => 'boolean',
+            'bg_color'   => 'nullable|string|max:20',
+            'text_color' => 'nullable|string|max:20',
         ]);
 
         $pays->update($data);

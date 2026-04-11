@@ -14,7 +14,6 @@ class Groupe extends Model
     protected $table = 'groupes';
 
     protected $fillable = [
-        'id',
         'code',
         'label_fr',
         'label_ar',

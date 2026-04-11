@@ -18,7 +18,6 @@ class Pays extends Model
     public $incrementing = true;
 
     protected $fillable = [
-        'id',
         'code',
         'label_fr',
         'label_ar',

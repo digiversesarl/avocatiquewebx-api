@@ -14,7 +14,6 @@ class Departement extends Model
     protected $table = 'departements';
 
     protected $fillable = [
-        'id',
         'code',
         'label_fr',
         'label_ar',

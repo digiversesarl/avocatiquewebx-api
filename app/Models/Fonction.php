@@ -13,7 +13,6 @@ class Fonction extends Model
     protected $table = 'fonctions';
 
     protected $fillable = [
-        'id',
         'code',
         'label_fr',
         'label_ar',

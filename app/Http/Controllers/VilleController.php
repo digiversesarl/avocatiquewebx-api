@@ -35,11 +35,13 @@ class VilleController extends Controller
         $data = $request->validate([
             'label_fr'   => 'required|string|max:255',
             'label_ar'   => 'required|string|max:255',
-            'label_fr'   => 'required|string|max:255',
+            'label_en'   => 'required|string|max:255',
             'pays_id'    => 'required|integer|exists:pays,id',
             'classement' => 'nullable|integer',
             'is_default' => 'boolean',
             'is_active'  => 'boolean',
+            'bg_color'   => 'nullable|string|max:20',
+            'text_color' => 'nullable|string|max:20',
         ]);
 
         $ville = Ville::create($data);
@@ -55,7 +57,6 @@ class VilleController extends Controller
     public function update(Request $request, Ville $ville): JsonResponse
     {
         $data = $request->validate([
-            'code'       => 'nullable|string|max:10|unique:villes,code,' . $ville->id,
             'label_fr'   => 'required|string|max:255',
             'label_ar'   => 'required|string|max:255',
             'label_en'   => 'required|string|max:255',
@@ -63,6 +64,8 @@ class VilleController extends Controller
             'classement' => 'nullable|integer',
             'is_default' => 'boolean',
             'is_active'  => 'boolean',
+            'bg_color'   => 'nullable|string|max:20',
+            'text_color' => 'nullable|string|max:20',
         ]);
 
         $ville->update($data);

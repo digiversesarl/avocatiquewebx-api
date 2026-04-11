@@ -18,7 +18,6 @@ class Ville extends Model
     public $incrementing = true;
 
     protected $fillable = [
-        'id',
         'label_fr',
         'label_ar',
         'label_en',
