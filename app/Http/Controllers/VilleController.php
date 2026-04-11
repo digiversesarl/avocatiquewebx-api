@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ville;
+use App\Services\VillesExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 
 class VilleController extends Controller
 {
@@ -111,5 +114,33 @@ class VilleController extends Controller
         }
 
         return response()->json(['message' => 'Ordre mis à jour.']);
+    }
+
+    public function exportPdf(Request $request, VillesExportService $exportService): Response
+    {
+        $language = $request->query('lang', 'fr');
+        $villes = Ville::with('pays')->orderBy('classement')->get();
+        
+        // Titre en fonction de la langue
+        $titles = [
+            'ar' => 'قائمة المدن',
+            'en' => 'Cities List',
+            'fr' => 'Liste des Villes',
+        ];
+        $title = $titles[$language] ?? $titles['fr'];
+        
+        // Récupérer le login de l'utilisateur authentifié
+        $user = Auth::user();
+        $userLogin = ($user && $user->name) ? $user->name : '';
+        
+        // Générer le nom de fichier avec date et heure
+        $timestamp = now()->format('Y-m-d_H-i-s');
+        $filename = "villes_{$timestamp}.pdf";
+        
+        $pdf = $exportService->generatePdf($villes, $language, $title, $filename, $userLogin);
+        
+        return response($pdf)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
     }
 }

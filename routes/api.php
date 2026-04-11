@@ -63,11 +63,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('groupes/{groupe}/duplicate', [GroupeController::class, 'duplicate']);
 
     Route::post('pays/reorder', [PaysController::class, 'reorder']);
+    Route::get('pays/export/pdf', [PaysController::class, 'exportPdf']);
     Route::apiResource('pays', PaysController::class)->parameters(['pays' => 'pays']);
     Route::patch('pays/{pays}/toggle-active', [PaysController::class, 'toggleActive']);
     Route::post('pays/{pays}/duplicate', [PaysController::class, 'duplicate']);
 
     Route::post('villes/reorder', [VilleController::class, 'reorder']);
+    Route::get('villes/export/pdf', [VilleController::class, 'exportPdf']);
     Route::apiResource('villes', VilleController::class);
     Route::patch('villes/{ville}/toggle-active', [VilleController::class, 'toggleActive']);
     Route::post('villes/{ville}/duplicate', [VilleController::class, 'duplicate']);

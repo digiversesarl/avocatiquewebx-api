@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pays;
+use App\Services\PaysExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 
 class PaysController extends Controller
 {
@@ -113,5 +116,33 @@ class PaysController extends Controller
         }
 
         return response()->json(['message' => 'Ordre mis à jour.']);
+    }
+
+    public function exportPdf(Request $request, PaysExportService $exportService): Response
+    {
+        $language = $request->query('lang', 'fr');
+        $pays = Pays::orderBy('classement')->get();
+        
+        // Titre en fonction de la langue
+        $titles = [
+            'ar' => 'قائمة الدول',
+            'en' => 'Countries List',
+            'fr' => 'Liste des Pays',
+        ];
+        $title = $titles[$language] ?? $titles['fr'];
+        
+        // Récupérer le login de l'utilisateur authentifié
+        $user = Auth::user();
+        $userLogin = ($user && $user->name) ? $user->name : '';
+        
+        // Générer le nom de fichier avec date et heure
+        $timestamp = now()->format('Y-m-d_H-i-s');
+        $filename = "pays_{$timestamp}.pdf";
+        
+        $pdf = $exportService->generatePdf($pays, $language, $title, $filename, $userLogin);
+        
+        return response($pdf)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
     }
 }
