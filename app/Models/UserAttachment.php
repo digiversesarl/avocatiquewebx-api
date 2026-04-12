@@ -14,9 +14,11 @@ class UserAttachment extends Model
         'user_id',
         'name',
         'type',
-        'path',
+        'file_path',
         'size',
     ];
+
+    protected $appends = ['url'];
 
     protected function casts(): array
     {
@@ -28,5 +30,10 @@ class UserAttachment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getUrlAttribute(): string
+    {
+        return asset('storage/' . $this->file_path);
     }
 }

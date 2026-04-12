@@ -206,6 +206,54 @@ class UserController extends Controller
     }
 
     /**
+     * POST /api/users/{user}/photo
+     *
+     * Upload photo du personnel
+     */
+    public function uploadPhoto(Request $request, User $user): JsonResponse
+    {
+        $request->validate([
+            'photo' => 'required|image|max:5120', // max 5MB
+        ]);
+
+        // Delete old photo
+        if ($user->photo) {
+            Storage::disk('public')->delete($user->photo);
+        }
+
+        $user->update([
+            'photo' => $request->file('photo')->store('personnel/photos', 'public'),
+        ]);
+
+        return response()->json(['photo' => $user->photo]);
+    }
+
+    /**
+     * POST /api/users/{user}/attachments
+     *
+     * Upload pièces jointes du personnel
+     */
+    public function uploadAttachments(Request $request, User $user): JsonResponse
+    {
+        $request->validate([
+            'attachments' => 'required|array',
+            'attachments.*' => 'file|max:512', // max 500KB
+        ]);
+
+        $attachments = [];
+        foreach ($request->file('attachments') ?? [] as $file) {
+            $attachment = $user->attachments()->create([
+                'name'      => $file->getClientOriginalName(),
+                'type'      => $file->getClientMimeType(),
+                'file_path' => $file->store('personnel/attachments', 'public'),
+            ]);
+            $attachments[] = $attachment;
+        }
+
+        return response()->json(['attachments' => $attachments]);
+    }
+
+    /**
      * DELETE /api/users/{user}/attachments/{attachment}
      */
     public function deleteAttachment(User $user, int $attachmentId): JsonResponse
@@ -215,5 +263,43 @@ class UserController extends Controller
         $attachment->delete();
 
         return response()->json(['message' => 'Pièce jointe supprimée.']);
+    }
+
+    /**
+     * PUT /api/users/{user}/password
+     *
+     * Reset password (admin only)
+     */
+    public function updatePassword(Request $request, User $user): JsonResponse
+    {
+        $request->validate([
+            'password' => 'required|string|min:4',
+        ]);
+
+        $user->update([
+            'password' => bcrypt($request->password),
+        ]);
+
+        return response()->json(['message' => 'Mot de passe réinitialisé.']);
+    }
+
+    /**
+     * POST /api/users/reorder
+     *
+     * Réordonner les utilisateurs par classement
+     */
+    public function reorder(Request $request): JsonResponse
+    {
+        $order = $request->validate([
+            'order' => 'required|array',
+            'order.*.id' => 'required|string',
+            'order.*.classement' => 'required|string',
+        ])['order'];
+
+        foreach ($order as $item) {
+            User::where('id', $item['id'])->update(['classement' => $item['classement']]);
+        }
+
+        return response()->json(['message' => 'Ordre mis à jour.']);
     }
 }

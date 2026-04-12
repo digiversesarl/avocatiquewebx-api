@@ -79,11 +79,16 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->prefix('users')
         ->name('users.')
         ->group(function (): void {
+            Route::post('reorder', [UserController::class, 'reorder'])->name('reorder');
             Route::get('/',        [UserController::class, 'index'])->name('index');
             Route::post('/',       [UserController::class, 'store'])->name('store');
             Route::get('/{user}',  [UserController::class, 'show'])->name('show');
             Route::put('/{user}',  [UserController::class, 'update'])->name('update');
             Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
+            Route::post('/{user}/photo', [UserController::class, 'uploadPhoto'])->name('photo');
+            Route::post('/{user}/attachments', [UserController::class, 'uploadAttachments'])->name('attachments');
+            Route::delete('/{user}/attachments/{attachment}', [UserController::class, 'deleteAttachment'])->name('attachments.delete');
+            Route::put('/{user}/password', [UserController::class, 'updatePassword'])->name('password');
         });
 
     // ── Administration : Rôles & Permissions ──────────────────────────
