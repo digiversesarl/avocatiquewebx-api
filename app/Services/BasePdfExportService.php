@@ -10,7 +10,6 @@ class BasePdfExportService
     protected Mpdf $mpdf;
     protected string $userLogin;
 
-    // Labels i18n centralisés
     private const LABELS = [
         'generated' => [
             'fr' => 'Généré le',
@@ -34,7 +33,9 @@ class BasePdfExportService
         $user            = Auth::user();
         $this->userLogin = '';
         if ($user) {
-            $this->userLogin = isset($user->login) ? $user->login : (isset($user->email) ? $user->email : '');
+            $this->userLogin = isset($user->login)
+                ? $user->login
+                : (isset($user->email) ? $user->email : '');
         }
 
         $this->mpdf = new Mpdf([
@@ -53,13 +54,43 @@ class BasePdfExportService
 
     /**
      * Générer un PDF à partir d'HTML et retourner le contenu binaire.
+     *
+     * Options :
+     *   'filename'        => string  (défaut : 'document.pdf')
+     *   'watermark_image' => string  chemin absolu vers l'image PNG/JPG
+     *   'watermark_alpha' => float   0.0 (opaque) – 1.0 (invisible), défaut 0.2
+     *   'watermark_size'  => mixed   'D' (défaut page) | 'P' | [largeur, hauteur] en mm
+     *   'watermark_pos'   => array   [x, y] en mm depuis le coin haut-gauche, défaut [5, 5]
      */
     public function generate(string $html, array $options = []): string
     {
+        $this->applyWatermark($options);
+
         $this->mpdf->WriteHTML($html);
 
         $filename = $options['filename'] ?? 'document.pdf';
         return $this->mpdf->Output($filename, 'S');
+    }
+
+    // -------------------------------------------------------------------------
+    // Filigrane
+    // -------------------------------------------------------------------------
+
+    /**
+     * Configurer le filigrane image.
+     * Peut aussi être appelé directement depuis une sous-classe avant generate().
+     */
+    protected function applyWatermark(array $options): void
+    {
+
+        $this->mpdf->SetWatermarkImage(
+            $options['watermark_image'] ?? public_path('images/filigrane.png'),
+            $options['watermark_alpha'] ?? 0.2,
+            $options['watermark_size']  ?? 'D',
+            $options['watermark_pos']   ?? [5, 5]
+        );
+
+        $this->mpdf->showWatermarkImage = true;
     }
 
     // -------------------------------------------------------------------------
@@ -139,11 +170,10 @@ class BasePdfExportService
         $generatedLabel = self::LABELS['generated'][$lang];
         $userLabel      = self::LABELS['user'][$lang];
 
-        // En arabe : sens inversé — utilisateur à gauche, date à droite
         if ($isRtl) {
-            $leftText  = $this->userLogin ? $userLabel . ': ' . htmlspecialchars($this->userLogin) : '';
-            $rightText = $generatedLabel . ' ' . $datetime;
-            $leftAlign = 'right';
+            $leftText   = $this->userLogin ? $userLabel . ': ' . htmlspecialchars($this->userLogin) : '';
+            $rightText  = $generatedLabel . ' ' . $datetime;
+            $leftAlign  = 'right';
             $rightAlign = 'left';
         } else {
             $leftText   = $generatedLabel . ' ' . $datetime;
