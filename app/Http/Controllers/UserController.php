@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\Departement;
+use App\Models\Groupe;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use OTPHP\TOTP;
 
@@ -67,7 +70,7 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request): JsonResponse
     {
-        $data = $request->safe()->except(['roles', 'photo', 'attachments']);
+        $data = $request->safe()->except(['roles', 'groupes', 'departements', 'photo', 'attachments']);
 
         // Photo upload
         if ($request->hasFile('photo')) {
@@ -80,6 +83,20 @@ class UserController extends Controller
         if ($request->filled('roles')) {
             $user->roles()->sync(
                 Role::whereIn('name', $request->roles)->pluck('id')
+            );
+        }
+
+        // Sync groupes
+        if ($request->filled('groupes')) {
+            $user->groupes()->sync(
+                Groupe::whereIn('name', $request->groupes)->pluck('id')
+            );
+        }
+
+        // Sync departements
+        if ($request->filled('departements')) {
+            $user->departements()->sync(
+                Departement::whereIn('name', $request->departements)->pluck('id')
             );
         }
 
@@ -115,45 +132,71 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        $data = $request->safe()->except(['roles', 'photo', 'attachments']);
+        try {
+            $data = $request->safe()->except(['roles', 'groupes', 'departements', 'photo', 'attachments']);
 
-        // Password : only update if provided
-        if (! $request->filled('password')) {
-            unset($data['password']);
-        }
-
-        // Photo upload
-        if ($request->hasFile('photo')) {
-            // Delete old photo
-            if ($user->photo) {
-                Storage::disk('public')->delete($user->photo);
+            // Password : only update if provided
+            if (! $request->filled('password')) {
+                unset($data['password']);
             }
-            $data['photo'] = $request->file('photo')->store('personnel/photos', 'public');
-        }
 
-        $user->update($data);
+            // Photo upload
+            if ($request->hasFile('photo')) {
+                // Delete old photo
+                if ($user->photo) {
+                    Storage::disk('public')->delete($user->photo);
+                }
+                $data['photo'] = $request->file('photo')->store('personnel/photos', 'public');
+            }
 
-        // Sync roles
-        if ($request->has('roles')) {
-            $user->roles()->sync(
-                Role::whereIn('name', $request->roles)->pluck('id')
+            $user->update($data);
+
+            // Sync roles
+            if ($request->has('roles')) {
+                $user->roles()->sync(
+                    Role::whereIn('name', $request->roles)->pluck('id')
+                );
+            }
+
+            // Sync groupes
+            if ($request->has('groupes')) {
+                $user->groupes()->sync(
+                    Groupe::whereIn('name', $request->groupes)->pluck('id')
+                );
+            }
+
+            // Sync departements
+            if ($request->has('departements')) {
+                $user->departements()->sync(
+                    Departement::whereIn('name', $request->departements)->pluck('id')
+                );
+            }
+
+            // New attachments
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $file) {
+                    $user->attachments()->create([
+                        'name'      => $file->getClientOriginalName(),
+                        'type'      => $file->getClientMimeType(),
+                        'file_path' => $file->store('personnel/attachments', 'public'),
+                    ]);
+                }
+            }
+
+            return response()->json(
+                $user->load(['roles:id,name', 'attachments'])
+            );
+        } catch (\Exception $e) {
+            Log::error('User update failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(
+                ['message' => 'Failed to update user: ' . $e->getMessage()],
+                500
             );
         }
-
-        // New attachments
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $user->attachments()->create([
-                    'name'      => $file->getClientOriginalName(),
-                    'type'      => $file->getClientMimeType(),
-                    'file_path' => $file->store('personnel/attachments', 'public'),
-                ]);
-            }
-        }
-
-        return response()->json(
-            $user->load(['roles:id,name', 'attachments'])
-        );
     }
 
     /**
@@ -237,7 +280,7 @@ class UserController extends Controller
     {
         $request->validate([
             'attachments' => 'required|array',
-            'attachments.*' => 'file|max:512', // max 500KB
+            'attachments.*' => 'file|max:5120', // max 5MB
         ]);
 
         $attachments = [];

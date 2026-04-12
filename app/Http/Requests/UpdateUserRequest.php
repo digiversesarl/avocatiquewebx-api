@@ -16,15 +16,46 @@ class UpdateUserRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        $userId = $this->route('user')?->id;
+        $user = $this->route('user');
+        $userId = $user ? $user->id : null;
 
         return [
-            'name'     => ['sometimes', 'string', 'max:255'],
-            'email'    => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($userId)],
-            'password' => ['sometimes', 'nullable', Password::min(8)->letters()->numbers()],
-            'status'   => ['sometimes', 'in:active,inactive'],
-            'roles'    => ['sometimes', 'array'],
-            'roles.*'  => ['string', 'exists:roles,name'],
+            'name'                  => ['sometimes', 'nullable', 'string', 'max:255'],
+            'email'                 => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($userId)],
+            'password'              => ['sometimes', 'nullable', Password::min(8)->letters()->numbers()],
+            'status'                => ['sometimes', 'in:active,inactive'],
+            'full_name_fr'          => ['sometimes', 'nullable', 'string', 'max:255'],
+            'full_name_ar'          => ['sometimes', 'nullable', 'string', 'max:255'],
+            'abbreviation_fr'       => ['sometimes', 'nullable', 'string', 'max:10'],
+            'abbreviation_ar'       => ['sometimes', 'nullable', 'string', 'max:10'],
+            'telephone'             => ['sometimes', 'nullable', 'string', 'max:20'],
+            'cin'                   => ['sometimes', 'nullable', 'string', 'max:20'],
+            'rib'                   => ['sometimes', 'nullable', 'string', 'max:34'],
+            'date_entree'           => ['sometimes', 'nullable', 'date'],
+            'langue'                => ['sometimes', 'in:fr,ar,en'],
+            'fonction'              => ['sometimes', 'nullable', 'string', 'max:255'],
+            'grade_avocat'          => ['sometimes', 'nullable', 'string', 'max:255'],
+            'departement'           => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_fr'            => ['sometimes', 'nullable', 'string'],
+            'address_ar'            => ['sometimes', 'nullable', 'string'],
+            'avocat_proprietaire'   => ['sometimes', 'boolean'],
+            'active'                => ['sometimes', 'boolean'],
+            'is_admin'              => ['sometimes', 'boolean'],
+            'classement'            => ['sometimes', 'nullable', 'string', 'max:10'],
+            'tarif_journalier'      => ['sometimes', 'nullable', 'numeric'],
+            'observation'           => ['sometimes', 'nullable', 'string'],
+            'couleur_fond'          => ['sometimes', 'nullable', 'string', 'max:7'],
+            'couleur_texte'         => ['sometimes', 'nullable', 'string', 'max:7'],
+            'valeur_par_defaut'     => ['sometimes', 'boolean'],
+            'tfa_enabled'           => ['sometimes', 'boolean'],
+            'tfa_secret'            => ['sometimes', 'nullable', 'string'],
+            'photo'                 => ['sometimes', 'nullable', 'string'], // Accept base64 strings or empty
+            'roles'                 => ['sometimes', 'array'],
+            'roles.*'               => ['string', 'exists:roles,name'],
+            'groupes'               => ['sometimes', 'array'],
+            'groupes.*'             => ['string', 'exists:groupes,name'],
+            'departements'          => ['sometimes', 'array'],
+            'departements.*'        => ['string', 'exists:departements,name'],
         ];
     }
 }
