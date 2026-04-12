@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
             Route::get('/{user}',  [UserController::class, 'show'])->name('show');
             Route::put('/{user}',  [UserController::class, 'update'])->name('update');
             Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
+            Route::patch('/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('toggle-active');
             Route::post('/{user}/photo', [UserController::class, 'uploadPhoto'])->name('photo');
             Route::post('/{user}/attachments', [UserController::class, 'uploadAttachments'])->name('attachments');
             Route::delete('/{user}/attachments/{attachment}', [UserController::class, 'deleteAttachment'])->name('attachments.delete');
