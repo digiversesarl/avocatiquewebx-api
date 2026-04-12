@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             MenuSeeder::class,
             PaysSeeder::class,
             VilleSeeder::class,
+            TranslationSeeder::class,
         ]);
     }
 }

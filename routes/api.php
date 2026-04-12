@@ -10,6 +10,7 @@ use App\Http\Controllers\GradeController;
 use App\Http\Controllers\GroupeController;
 use App\Http\Controllers\PaysController;
 use App\Http\Controllers\VilleController;
+use App\Http\Controllers\TranslationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,6 +29,9 @@ Route::prefix('auth')->name('auth.')->group(function (): void {
     Route::post('login',           [AuthController::class, 'login'])->name('login');
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
 });
+
+// ── Translations (publique pour charger dans l'app)
+Route::get('translations', [TranslationController::class, 'index'])->name('translations.index');
 
 // ── Routes protégées (Sanctum) ────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function (): void {
@@ -118,5 +122,16 @@ Route::middleware('auth:sanctum')->group(function (): void {
             Route::put('/{menuItem}',                [MenuItemController::class, 'update'])->name('update');
             Route::delete('/{menuItem}',             [MenuItemController::class, 'destroy'])->name('destroy');
             Route::patch('/{menuItem}/toggle-visibility', [MenuItemController::class, 'toggleVisibility'])->name('toggle-visibility');
+        });
+
+    // ── Administration : Traductions ──────────────────────────────────
+    Route::middleware('permission:admin.settings')
+        ->prefix('translations-crud')
+        ->name('translations.')
+        ->group(function (): void {
+            Route::post('/',                    [TranslationController::class, 'store'])->name('store');
+            Route::get('/{translation}',        [TranslationController::class, 'show'])->name('show');
+            Route::put('/{translation}',        [TranslationController::class, 'update'])->name('update');
+            Route::delete('/{translation}',     [TranslationController::class, 'destroy'])->name('destroy');
         });
 });
