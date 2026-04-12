@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Mpdf\Mpdf;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class BasePdfExportService
 {
@@ -77,17 +78,30 @@ class BasePdfExportService
     // -------------------------------------------------------------------------
 
     /**
-     * Configurer le filigrane image.
-     * Peut aussi être appelé directement depuis une sous-classe avant generate().
+     * Configurer le filigrane image avant génération.
+     * Appelé automatiquement par generate(), ou directement depuis une sous-classe.
+     *
+     * Priorité de résolution du chemin :
+     *   1. $options['watermark_image'] passé explicitement
+     *   2. config('pdf.watermark_image') dans config/pdf.php
+     *   3. public_path('images/filigrane.png') comme fallback final
      */
     protected function applyWatermark(array $options): void
     {
+        $path = $options['watermark_image']
+            ?? config('pdf.watermark_image')
+            ?? public_path('images/filigrane.png');
+
+        if (!file_exists($path) || !is_readable($path)) {
+            Log::warning("BasePdfExportService : filigrane introuvable [{$path}]");
+            return;
+        }
 
         $this->mpdf->SetWatermarkImage(
-            $options['watermark_image'] ?? public_path('images/filigrane.png'),
-            $options['watermark_alpha'] ?? 0.2,
-            $options['watermark_size']  ?? 'D',
-            $options['watermark_pos']   ?? [5, 5]
+            $path,
+            $options['watermark_alpha'] ?? config('pdf.watermark_alpha', 0.2),
+            $options['watermark_size']  ?? config('pdf.watermark_size',  'D'),
+            $options['watermark_pos']   ?? config('pdf.watermark_pos',   [5, 5])
         );
 
         $this->mpdf->showWatermarkImage = true;
