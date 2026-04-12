@@ -261,13 +261,12 @@ class BasePdfExportService
             text-align: ' . $textAlign . ';
             font-weight: bold;
             border: 1px solid #bdc3c7;
+            background-color: #3498db;
+            color: white !important;
         }
         td {
             padding: 8px;
             border: 1px solid #ddd;
-        }
-        tbody tr:nth-child(even) {
-            background-color: #ecf0f1;
         }';
     }
 }
