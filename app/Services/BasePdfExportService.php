@@ -190,10 +190,14 @@ class BasePdfExportService
     protected function getTableHeaders(string $language, array $headerLabels): string
     {
         $lang  = $this->resolveLanguage($language);
+
+        // Plus de width fixe sur la colonne #
         $cells = ['<th style="width: 5%;">' . self::LABELS['number'][$lang] . '</th>'];
 
         foreach ($headerLabels as $label) {
-            $cells[] = '<th style="width: ' . $label['width'] . ';">' . $label[$lang] . '</th>';
+            // On garde le width SEULEMENT s'il est explicitement fourni
+            $width = !empty($label['width']) ? ' style="width: ' . $label['width'] . ';"' : '';
+            $cells[] = '<th' . $width . '>' . $label[$lang] . '</th>';
         }
 
         return implode('', $cells);
@@ -258,43 +262,42 @@ class BasePdfExportService
     private function buildCss(string $textAlign): string
     {
         return '
-        * { margin: 0; padding: 0; }
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11px;
-            color: #333;
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin: 0 0 20px 0;
-            font-size: 18px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        thead {
-            background-color: #3498db;
-            color: #fff;
-        }
-        th {
-            padding: 10px;
-            text-align: ' . $textAlign . ';
-            font-weight: bold;
-            border: 1px solid #bdc3c7;
-            background-color: #3498db;
-            color: white !important;
-            font-size: 10px;
-        }
-        td {
-            padding: 8px;
-            border: 1px solid #ddd;
-            font-size: 10px;
-        }
-        tbody tr:nth-child(2n) {
-            background-color: #f5f5f5;
-        }';
+    * { margin: 0; padding: 0; }
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10px;
+        color: #333;
+    }
+    h1 {
+        text-align: center;
+        color: #2c3e50;
+        margin: 0 0 20px 0;
+        font-size: 16px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        table-layout: auto;        /* ← clé : colonnes adaptées au contenu */
+    }
+    th {
+        padding: 6px 8px;
+        text-align: ' . $textAlign . ';
+        font-weight: bold;
+        border: 1px solid #bdc3c7;
+        background-color: #3498db;
+        color: white !important;
+        font-size: 9px;
+        white-space: nowrap;       /* ← en-têtes sur une seule ligne */
+    }
+    td {
+        padding: 5px 7px;
+        border: 1px solid #ddd;
+        font-size: 9px;
+        word-break: break-word;    /* ← contenu long se coupe proprement */
+    }
+    tbody tr:nth-child(2n) {
+        background-color: #f5f5f5;
+    }';
     }
 }

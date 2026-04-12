@@ -31,14 +31,14 @@ class VillesExportService extends BasePdfExportService
 
         // Définir les en-têtes de colonne
         $headerLabels = [
-            ['fr' => 'Ville', 'ar' => 'المدينة', 'en' => 'City', 'width' => '20%'],
-            ['fr' => 'Pays', 'ar' => 'الدولة', 'en' => 'Country', 'width' => '15%'],
-            ['fr' => 'Code', 'ar' => 'الكود', 'en' => 'Code', 'width' => '10%'],
-            ['fr' => 'Ordre', 'ar' => 'الترتيب', 'en' => 'Order', 'width' => '8%'],
-            ['fr' => 'Couleur Fond', 'ar' => 'اللون الخلفي', 'en' => 'Background Color', 'width' => '8%'],
-            ['fr' => 'Couleur Texte', 'ar' => 'لون النص', 'en' => 'Text Color', 'width' => '8%'],
-            ['fr' => 'Défaut', 'ar' => 'افتراضي', 'en' => 'Default', 'width' => '5%'],
-            ['fr' => 'Actif', 'ar' => 'نشط', 'en' => 'Active', 'width' => '5%'],
+            ['fr' => 'Ville',         'ar' => 'المدينة',      'en' => 'City',             'width' => ''],     // auto — texte variable
+            ['fr' => 'Pays',          'ar' => 'الدولة',       'en' => 'Country',          'width' => ''],     // auto — texte variable
+            ['fr' => 'Code',          'ar' => 'الكود',        'en' => 'Code',             'width' => '7%'],   // ex: "AF", "DZ"
+            ['fr' => 'Ordre',         'ar' => 'الترتيب',      'en' => 'Order',            'width' => '7%'],   // ex: 1, 2, 3
+            ['fr' => 'Couleur Fond',  'ar' => 'اللون الخلفي', 'en' => 'Background Color', 'width' => '12%'],  // ex: #73879c + pastille
+            ['fr' => 'Couleur Texte', 'ar' => 'لون النص',     'en' => 'Text Color',       'width' => '12%'],  // ex: #ffffff + pastille
+            ['fr' => 'Défaut',        'ar' => 'افتراضي',      'en' => 'Default',          'width' => '6%'],   // ✓ ou vide
+            ['fr' => 'Actif',         'ar' => 'نشط',          'en' => 'Active',           'width' => '6%'],   // ✓ ou vide
         ];
 
         $headers = $this->getTableHeaders($language, $headerLabels);

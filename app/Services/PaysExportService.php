@@ -31,13 +31,13 @@ class PaysExportService extends BasePdfExportService
 
         // Définir les en-têtes de colonne
         $headerLabels = [
-            ['fr' => 'Pays', 'ar' => 'الدولة', 'en' => 'Country', 'width' => '25%'],
-            ['fr' => 'Code', 'ar' => 'الكود', 'en' => 'Code', 'width' => '12%'],
-            ['fr' => 'Ordre', 'ar' => 'الترتيب', 'en' => 'Order', 'width' => '8%'],
-            ['fr' => 'Couleur Fond', 'ar' => 'اللون الخلفي', 'en' => 'Background Color', 'width' => '10%'],
-            ['fr' => 'Couleur Texte', 'ar' => 'لون النص', 'en' => 'Text Color', 'width' => '10%'],
-            ['fr' => 'Défaut', 'ar' => 'افتراضي', 'en' => 'Default', 'width' => '5%'],
-            ['fr' => 'Actif', 'ar' => 'نشط', 'en' => 'Active', 'width' => '5%'],
+            ['fr' => 'Pays',         'en' => 'Country', 'ar' => 'الدولة',      'width' => ''],   // auto
+            ['fr' => 'Code',         'en' => 'Code',    'ar' => 'الكود',       'width' => '8%'],  // court
+            ['fr' => 'Ordre',        'en' => 'Order',   'ar' => 'الترتيب',     'width' => '8%'],  // court
+            ['fr' => 'Couleur fond', 'en' => '...',     'ar' => 'اللون الحلقي','width' => ''],   // auto
+            ['fr' => 'Couleur texte','en' => '...',     'ar' => 'لون النص',    'width' => ''],   // auto
+            ['fr' => 'Défaut',       'en' => '...',     'ar' => 'افتراضي',     'width' => '8%'],  // court
+            ['fr' => 'Actif',        'en' => '...',     'ar' => 'نشط',         'width' => '8%'],  // court
         ];
 
         $headers = $this->getTableHeaders($language, $headerLabels);
