@@ -11,6 +11,14 @@ class BasePdfExportService
     protected Mpdf $mpdf;
     protected string $userLogin;
 
+    /**
+     * Cache base64 par chemin absolu : ['chemin' => 'base64...']
+     * Évite les relectures disque répétées dans le même cycle PHP.
+     *
+     * @var array<string, string>
+     */
+    private static array $watermarkCache = [];
+
     private const LABELS = [
         'generated' => [
             'fr' => 'Généré le',
@@ -39,13 +47,30 @@ class BasePdfExportService
                 : (isset($user->email) ? $user->email : '');
         }
 
+        $tmpDir = storage_path('app/mpdf_tmp');
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0755, true);
+        }
+
         $this->mpdf = new Mpdf([
-            'mode'          => 'utf-8',
-            'format'        => 'A4',
-            'margin_left'   => 10,
-            'margin_right'  => 10,
-            'margin_top'    => 15,
-            'margin_bottom' => 25,
+            'mode'             => 'utf-8',
+            'format'           => 'A4',
+            'margin_left'      => 10,
+            'margin_right'     => 10,
+            'margin_top'       => 15,
+            'margin_bottom'    => 25,
+            'tempDir'          => $tmpDir,
+
+            // ── Performances ─────────────────────────────────────────
+            'compress'            => true,
+            'simpleTables'        => true,   // ⚠ incompatible rowspan/colspan
+            'packTableData'       => true,
+            'useSubstitutions'    => false,
+            'use_AdobeCFF'        => false,
+            'useActiveForms'      => false,
+            'enableImports'       => false,
+            'autoScriptToLang'    => false,
+            'autoLangToScript'    => false,
         ]);
     }
 
@@ -57,16 +82,17 @@ class BasePdfExportService
      * Générer un PDF à partir d'HTML et retourner le contenu binaire.
      *
      * Options :
-     *   'filename'        => string  (défaut : 'document.pdf')
-     *   'watermark_image' => string  chemin absolu vers l'image PNG/JPG
-     *   'watermark_alpha' => float   0.0 (opaque) – 1.0 (invisible), défaut 0.2
-     *   'watermark_size'  => mixed   'D' (défaut page) | 'P' | [largeur, hauteur] en mm
-     *   'watermark_pos'   => array   [x, y] en mm depuis le coin haut-gauche, défaut [5, 5]
+     *   'filename'        => string        (défaut : 'document.pdf')
+     *   'watermark_image' => string|null   null = désactiver explicitement
+     *   'watermark_alpha' => float         0.0 (opaque) – 1.0 (invisible), défaut 0.2
+     *   'watermark_size'  => mixed         'D' | 'P' | [w, h] en mm
+     *   'watermark_pos'   => array         [x, y] en mm, défaut [5, 5]
      */
     public function generate(string $html, array $options = []): string
     {
         $this->applyWatermark($options);
 
+        // ⚠ WriteHTML() sans second argument = parsing HTML complet (correct)
         $this->mpdf->WriteHTML($html);
 
         $filename = $options['filename'] ?? 'document.pdf';
@@ -79,15 +105,19 @@ class BasePdfExportService
 
     /**
      * Configurer le filigrane image avant génération.
-     * Appelé automatiquement par generate(), ou directement depuis une sous-classe.
      *
-     * Priorité de résolution du chemin :
-     *   1. $options['watermark_image'] passé explicitement
-     *   2. config('pdf.watermark_image') dans config/pdf.php
-     *   3. public_path('images/filigrane.png') comme fallback final
+     * Priorité :
+     *   1. $options['watermark_image'] explicite  (null = désactivé)
+     *   2. config('pdf.watermark_image')
+     *   3. public_path('images/filigrane.png')
      */
     protected function applyWatermark(array $options): void
     {
+        // Désactivation explicite via null
+        if (array_key_exists('watermark_image', $options) && $options['watermark_image'] === null) {
+            return;
+        }
+
         $path = $options['watermark_image']
             ?? config('pdf.watermark_image')
             ?? public_path('images/filigrane.png');
@@ -97,8 +127,16 @@ class BasePdfExportService
             return;
         }
 
+        // Cache indexé par chemin — supporte plusieurs images différentes
+        if (!isset(self::$watermarkCache[$path])) {
+            self::$watermarkCache[$path] = base64_encode(file_get_contents($path));
+        }
+
+        $mime    = mime_content_type($path);
+        $dataUri = "data:{$mime};base64," . self::$watermarkCache[$path];
+
         $this->mpdf->SetWatermarkImage(
-            $path,
+            $dataUri,
             $options['watermark_alpha'] ?? config('pdf.watermark_alpha', 0.2),
             $options['watermark_size']  ?? config('pdf.watermark_size',  'D'),
             $options['watermark_pos']   ?? config('pdf.watermark_pos',   [5, 5])
@@ -111,9 +149,6 @@ class BasePdfExportService
     // Construction HTML
     // -------------------------------------------------------------------------
 
-    /**
-     * Point d'entrée principal pour construire la page PDF complète.
-     */
     protected function buildPdfHtml(
         string $title,
         string $language,
@@ -150,14 +185,11 @@ class BasePdfExportService
     }
 
     /**
-     * Construire les en-têtes du tableau selon la langue.
-     *
      * @param  array<int, array{fr: string, en: string, ar: string, width: string}> $headerLabels
      */
     protected function getTableHeaders(string $language, array $headerLabels): string
     {
-        $lang = $this->resolveLanguage($language);
-
+        $lang  = $this->resolveLanguage($language);
         $cells = ['<th style="width: 5%;">' . self::LABELS['number'][$lang] . '</th>'];
 
         foreach ($headerLabels as $label) {
@@ -171,10 +203,6 @@ class BasePdfExportService
     // Footer natif mPDF
     // -------------------------------------------------------------------------
 
-    /**
-     * Construire le footer affiché sur TOUTES les pages.
-     * Résultat : Généré le 11/04/2026 22:22  |  1 / 8  |  Utilisateur: admin
-     */
     protected function buildFooterHtml(string $language): string
     {
         $isRtl    = $language === 'ar';
@@ -222,29 +250,24 @@ class BasePdfExportService
     // Helpers internes
     // -------------------------------------------------------------------------
 
-    /**
-     * Retourner la clé de langue normalisée (fr par défaut).
-     */
     private function resolveLanguage(string $language): string
     {
         return in_array($language, ['fr', 'en', 'ar'], true) ? $language : 'fr';
     }
 
-    /**
-     * Retourner le CSS commun à tous les PDFs.
-     */
     private function buildCss(string $textAlign): string
     {
         return '
+        * { margin: 0; padding: 0; }
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 11px;
             color: #333;
         }
         h1 {
             text-align: center;
             color: #2c3e50;
-            margin-bottom: 20px;
+            margin: 0 0 20px 0;
             font-size: 18px;
         }
         table {
@@ -254,7 +277,7 @@ class BasePdfExportService
         }
         thead {
             background-color: #3498db;
-            color: white;
+            color: #fff;
         }
         th {
             padding: 10px;
@@ -263,10 +286,15 @@ class BasePdfExportService
             border: 1px solid #bdc3c7;
             background-color: #3498db;
             color: white !important;
+            font-size: 10px;
         }
         td {
             padding: 8px;
             border: 1px solid #ddd;
+            font-size: 10px;
+        }
+        tbody tr:nth-child(2n) {
+            background-color: #f5f5f5;
         }';
     }
 }
