@@ -9,16 +9,16 @@ class VillesExportService extends BasePdfExportService
     /**
      * Générer un PDF pour l'export de villes
      */
-    public function generatePdf(Collection $villes, string $language = 'fr', string $title = 'Villes', string $filename = 'villes.pdf', string $userLogin = ''): string
+    public function generatePdf(Collection $villes, string $language = 'fr', string $title = 'Villes', string $filename = 'villes.pdf'): string
     {
-        $html = $this->buildVillesHtml($villes, $language, $title, $userLogin);
+        $html = $this->buildVillesHtml($villes, $language, $title);
         return $this->generate($html, ['filename' => $filename]);
     }
 
     /**
      * Construire le HTML pour le PDF des villes
      */
-    private function buildVillesHtml(Collection $villes, string $language, string $title, string $userLogin = ''): string
+    private function buildVillesHtml(Collection $villes, string $language, string $title): string
     {
         // Sélectionner la clé de label en fonction de la langue
         if ($language === 'ar') {
@@ -44,7 +44,7 @@ class VillesExportService extends BasePdfExportService
         $headers = $this->getTableHeaders($language, $headerLabels);
         $rows = $this->buildVillesRows($villes, $language, $labelKey);
 
-        return $this->buildPdfHtml($title, $language, $headers, $rows, $userLogin);
+        return $this->buildPdfHtml($title, $language, $headers, $rows);
     }
 
     /**

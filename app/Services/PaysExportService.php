@@ -9,16 +9,16 @@ class PaysExportService extends BasePdfExportService
     /**
      * Générer un PDF pour l'export de pays
      */
-    public function generatePdf(Collection $pays, string $language = 'fr', string $title = 'Pays', string $filename = 'pays.pdf', string $userLogin = ''): string
+    public function generatePdf(Collection $pays, string $language = 'fr', string $title = 'Pays', string $filename = 'pays.pdf'): string
     {
-        $html = $this->buildPaysHtml($pays, $language, $title, $userLogin);
+        $html = $this->buildPaysHtml($pays, $language, $title);
         return $this->generate($html, ['filename' => $filename]);
     }
 
     /**
      * Construire le HTML pour le PDF des pays
      */
-    private function buildPaysHtml(Collection $pays, string $language, string $title, string $userLogin = ''): string
+    private function buildPaysHtml(Collection $pays, string $language, string $title): string
     {
         // Sélectionner la clé de label en fonction de la langue
         if ($language === 'ar') {
@@ -43,7 +43,7 @@ class PaysExportService extends BasePdfExportService
         $headers = $this->getTableHeaders($language, $headerLabels);
         $rows = $this->buildPaysRows($pays, $language, $labelKey);
 
-        return $this->buildPdfHtml($title, $language, $headers, $rows, $userLogin);
+        return $this->buildPdfHtml($title, $language, $headers, $rows);
     }
 
     /**

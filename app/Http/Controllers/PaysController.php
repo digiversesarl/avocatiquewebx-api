@@ -7,7 +7,6 @@ use App\Services\PaysExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 
 class PaysController extends Controller
 {
@@ -131,15 +130,11 @@ class PaysController extends Controller
         ];
         $title = $titles[$language] ?? $titles['fr'];
         
-        // Récupérer le login de l'utilisateur authentifié
-        $user = Auth::user();
-        $userLogin = ($user && $user->name) ? $user->name : '';
-        
         // Générer le nom de fichier avec date et heure
         $timestamp = now()->format('Y-m-d_H-i-s');
         $filename = "pays_{$timestamp}.pdf";
         
-        $pdf = $exportService->generatePdf($pays, $language, $title, $filename, $userLogin);
+        $pdf = $exportService->generatePdf($pays, $language, $title, $filename);
         
         return response($pdf)
             ->header('Content-Type', 'application/pdf')

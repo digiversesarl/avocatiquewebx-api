@@ -3,179 +3,227 @@
 namespace App\Services;
 
 use Mpdf\Mpdf;
+use Illuminate\Support\Facades\Auth;
 
 class BasePdfExportService
 {
     protected Mpdf $mpdf;
+    protected string $userLogin;
+
+    // Labels i18n centralisés
+    private const LABELS = [
+        'generated' => [
+            'fr' => 'Généré le',
+            'en' => 'Generated on',
+            'ar' => 'تم إنشاؤه في',
+        ],
+        'user' => [
+            'fr' => 'Utilisateur',
+            'en' => 'User',
+            'ar' => 'المستخدم',
+        ],
+        'number' => [
+            'fr' => '#',
+            'en' => '#',
+            'ar' => '#',
+        ],
+    ];
 
     public function __construct()
     {
+        $user            = Auth::user();
+        $this->userLogin = '';
+        if ($user) {
+            $this->userLogin = isset($user->login) ? $user->login : (isset($user->email) ? $user->email : '');
+        }
+
         $this->mpdf = new Mpdf([
-            'mode' => 'utf-8',
-            'format' => 'A4',
-            'margin_left' => 10,
-            'margin_right' => 10,
-            'margin_top' => 15,
+            'mode'          => 'utf-8',
+            'format'        => 'A4',
+            'margin_left'   => 10,
+            'margin_right'  => 10,
+            'margin_top'    => 15,
             'margin_bottom' => 25,
         ]);
     }
 
+    // -------------------------------------------------------------------------
+    // API publique
+    // -------------------------------------------------------------------------
+
     /**
-     * Générer un PDF à partir d'HTML
+     * Générer un PDF à partir d'HTML et retourner le contenu binaire.
      */
     public function generate(string $html, array $options = []): string
     {
         $this->mpdf->WriteHTML($html);
-        
+
         $filename = $options['filename'] ?? 'document.pdf';
         return $this->mpdf->Output($filename, 'S');
     }
 
-    /**
-     * Obtenir le texte du footer en fonction de la langue
-     */
-    protected function getFooterText(string $language, string $userLogin = ''): string
-    {
-        $generatedText = $this->getGeneratedText($language);
-        $datetime = now()->format('d/m/Y H:i');
-        
-        if ($language === 'ar') {
-            $userText = $userLogin ? ' | المستخدم: ' . htmlspecialchars($userLogin) : '';
-            return $generatedText . ' ' . $datetime . $userText;
-        } elseif ($language === 'en') {
-            $userText = $userLogin ? ' | User: ' . htmlspecialchars($userLogin) : '';
-            return $generatedText . ' ' . $datetime . $userText;
-        } else {
-            $userText = $userLogin ? ' | Utilisateur: ' . htmlspecialchars($userLogin) : '';
-            return $generatedText . ' ' . $datetime . $userText;
-        }
-    }
+    // -------------------------------------------------------------------------
+    // Construction HTML
+    // -------------------------------------------------------------------------
 
     /**
-     * Obtenir les en-têtes du tableau en fonction de la langue
-     */
-    protected function getTableHeaders(string $language, array $headerLabels): string
-    {
-        $headers = [];
-        
-        if ($language === 'ar') {
-            $headers[] = '<th style="width: 5%;">#</th>';
-            foreach ($headerLabels as $label) {
-                $headers[] = '<th style="width: ' . $label['width'] . ';">' . $label['ar'] . '</th>';
-            }
-        } elseif ($language === 'en') {
-            $headers[] = '<th style="width: 5%;">#</th>';
-            foreach ($headerLabels as $label) {
-                $headers[] = '<th style="width: ' . $label['width'] . ';">' . $label['en'] . '</th>';
-            }
-        } else {
-            $headers[] = '<th style="width: 5%;">#</th>';
-            foreach ($headerLabels as $label) {
-                $headers[] = '<th style="width: ' . $label['width'] . ';">' . $label['fr'] . '</th>';
-            }
-        }
-        
-        return implode('', $headers);
-    }
-
-    /**
-     * Obtenir le texte de génération en fonction de la langue
-     */
-    protected function getGeneratedText(string $language): string
-    {
-        if ($language === 'ar') {
-            return 'تم إنشاؤه في';
-        } elseif ($language === 'en') {
-            return 'Generated on';
-        } else {
-            return 'Généré le';
-        }
-    }
-
-    /**
-     * Construire le HTML du tableau PDF
+     * Point d'entrée principal pour construire la page PDF complète.
      */
     protected function buildPdfHtml(
         string $title,
         string $language,
         string $tableHeaders,
-        string $tableRows,
-        string $userLogin = ''
+        string $tableRows
     ): string {
-        $dirAttr = $language === 'ar' ? 'rtl' : 'ltr';
-        $textAlign = $language === 'ar' ? 'right' : 'left';
-        $footerText = $this->getFooterText($language, $userLogin);
+        $isRtl     = $language === 'ar';
+        $dirAttr   = $isRtl ? 'rtl' : 'ltr';
+        $textAlign = $isRtl ? 'right' : 'left';
 
-        $htmlTemplate = '<!DOCTYPE html>
-            <html dir="' . $dirAttr . '">
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        font-size: 11px;
-                        color: #333;
-                    }
-                    h1 {
-                        text-align: center;
-                        color: #2c3e50;
-                        margin-bottom: 20px;
-                        font-size: 18px;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 20px;
-                    }
-                    thead {
-                        background-color: #3498db;
-                        color: white;
-                    }
-                    th {
-                        padding: 10px;
-                        text-align: ' . $textAlign . ';
-                        font-weight: bold;
-                        border: 1px solid #bdc3c7;
-                    }
-                    td {
-                        padding: 8px;
-                        border: 1px solid #ddd;
-                    }
-                    tbody tr:nth-child(even) {
-                        background-color: #ecf0f1;
-                    }
-                    tbody tr:hover {
-                        background-color: #d5dbdb;
-                    }
-                    .footer {
-                        margin-top: 40px;
-                        padding-top: 15px;
-                        text-align: center;
-                        color: #7f8c8d;
-                        font-size: 10px;
-                        border-top: 1px solid #bdc3c7;
-                        page-break-inside: avoid;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>' . htmlspecialchars($title) . '</h1>
-                <table>
-                    <thead>
-                        <tr>
-                            ' . $tableHeaders . '
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ' . $tableRows . '
-                    </tbody>
-                </table>
-                <div class="footer">
-                    <p>' . $footerText . '</p>
-                </div>
-            </body>
-            </html>';
+        return '<!DOCTYPE html>
+<html dir="' . $dirAttr . '">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        ' . $this->buildCss($textAlign) . '
+    </style>
+</head>
+<body>
+    ' . $this->buildFooterHtml($language) . '
 
-        return $htmlTemplate;
+    <h1>' . htmlspecialchars($title) . '</h1>
+
+    <table>
+        <thead>
+            <tr>' . $tableHeaders . '</tr>
+        </thead>
+        <tbody>
+            ' . $tableRows . '
+        </tbody>
+    </table>
+</body>
+</html>';
+    }
+
+    /**
+     * Construire les en-têtes du tableau selon la langue.
+     *
+     * @param  array<int, array{fr: string, en: string, ar: string, width: string}> $headerLabels
+     */
+    protected function getTableHeaders(string $language, array $headerLabels): string
+    {
+        $lang = $this->resolveLanguage($language);
+
+        $cells = ['<th style="width: 5%;">' . self::LABELS['number'][$lang] . '</th>'];
+
+        foreach ($headerLabels as $label) {
+            $cells[] = '<th style="width: ' . $label['width'] . ';">' . $label[$lang] . '</th>';
+        }
+
+        return implode('', $cells);
+    }
+
+    // -------------------------------------------------------------------------
+    // Footer natif mPDF
+    // -------------------------------------------------------------------------
+
+    /**
+     * Construire le footer affiché sur TOUTES les pages.
+     * Résultat : Généré le 11/04/2026 22:22  |  1 / 8  |  Utilisateur: admin
+     */
+    protected function buildFooterHtml(string $language): string
+    {
+        $isRtl    = $language === 'ar';
+        $lang     = $this->resolveLanguage($language);
+        $datetime = now()->format('d/m/Y H:i');
+
+        $generatedLabel = self::LABELS['generated'][$lang];
+        $userLabel      = self::LABELS['user'][$lang];
+
+        // En arabe : sens inversé — utilisateur à gauche, date à droite
+        if ($isRtl) {
+            $leftText  = $this->userLogin ? $userLabel . ': ' . htmlspecialchars($this->userLogin) : '';
+            $rightText = $generatedLabel . ' ' . $datetime;
+            $leftAlign = 'right';
+            $rightAlign = 'left';
+        } else {
+            $leftText   = $generatedLabel . ' ' . $datetime;
+            $rightText  = $this->userLogin ? $userLabel . ': ' . htmlspecialchars($this->userLogin) : '';
+            $leftAlign  = 'left';
+            $rightAlign = 'right';
+        }
+
+        $cellStyle = 'font-family: Arial, sans-serif; font-size: 9px; color: #7f8c8d;';
+
+        return '
+<htmlpagefooter name="myfooter">
+    <table style="width: 100%; border-top: 1px solid #bdc3c7; padding-top: 5px;">
+        <tr>
+            <td style="' . $cellStyle . ' text-align: ' . $leftAlign . '; width: 33%;">
+                ' . $leftText . '
+            </td>
+            <td style="' . $cellStyle . ' text-align: center; width: 34%;">
+                {PAGENO} / {nbpg}
+            </td>
+            <td style="' . $cellStyle . ' text-align: ' . $rightAlign . '; width: 33%;">
+                ' . $rightText . '
+            </td>
+        </tr>
+    </table>
+</htmlpagefooter>
+
+<sethtmlpagefooter name="myfooter" value="on" />';
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers internes
+    // -------------------------------------------------------------------------
+
+    /**
+     * Retourner la clé de langue normalisée (fr par défaut).
+     */
+    private function resolveLanguage(string $language): string
+    {
+        return in_array($language, ['fr', 'en', 'ar'], true) ? $language : 'fr';
+    }
+
+    /**
+     * Retourner le CSS commun à tous les PDFs.
+     */
+    private function buildCss(string $textAlign): string
+    {
+        return '
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        thead {
+            background-color: #3498db;
+            color: white;
+        }
+        th {
+            padding: 10px;
+            text-align: ' . $textAlign . ';
+            font-weight: bold;
+            border: 1px solid #bdc3c7;
+        }
+        td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #ecf0f1;
+        }';
     }
 }
