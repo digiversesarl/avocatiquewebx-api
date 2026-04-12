@@ -23,7 +23,7 @@ class UserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $users = User::with(['roles:id,name'])
+        $users = User::with(['roles:id,name', 'groupes:id,label_fr', 'departements:id,label_fr', 'attachments'])
             ->when(
                 $request->filled('search'),
                 fn ($q) => $q->where(function ($q) use ($request): void {
@@ -89,14 +89,14 @@ class UserController extends Controller
         // Sync groupes
         if ($request->filled('groupes')) {
             $user->groupes()->sync(
-                Groupe::whereIn('name', $request->groupes)->pluck('id')
+                Groupe::whereIn('label_fr', $request->groupes)->pluck('id')
             );
         }
 
         // Sync departements
         if ($request->filled('departements')) {
             $user->departements()->sync(
-                Departement::whereIn('name', $request->departements)->pluck('id')
+                Departement::whereIn('label_fr', $request->departements)->pluck('id')
             );
         }
 
@@ -123,7 +123,7 @@ class UserController extends Controller
     public function show(User $user): JsonResponse
     {
         return response()->json(
-            $user->load(['roles:id,name', 'attachments'])
+            $user->load(['roles:id,name', 'groupes:id,label_fr', 'departements:id,label_fr', 'attachments'])
         );
     }
 
@@ -161,14 +161,14 @@ class UserController extends Controller
             // Sync groupes
             if ($request->has('groupes')) {
                 $user->groupes()->sync(
-                    Groupe::whereIn('name', $request->groupes)->pluck('id')
+                    Groupe::whereIn('label_fr', $request->groupes)->pluck('id')
                 );
             }
 
             // Sync departements
             if ($request->has('departements')) {
                 $user->departements()->sync(
-                    Departement::whereIn('name', $request->departements)->pluck('id')
+                    Departement::whereIn('label_fr', $request->departements)->pluck('id')
                 );
             }
 

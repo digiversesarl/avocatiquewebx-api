@@ -50,9 +50,9 @@ class StoreUserRequest extends FormRequest
             'roles'                 => ['sometimes', 'array'],
             'roles.*'               => ['string', 'exists:roles,name'],
             'groupes'               => ['sometimes', 'array'],
-            'groupes.*'             => ['string', 'exists:groupes,name'],
+            'groupes.*'             => ['string', 'exists:groupes,label_fr'],
             'departements'          => ['sometimes', 'array'],
-            'departements.*'        => ['string', 'exists:departements,name'],
+            'departements.*'        => ['string', 'exists:departements,label_fr'],
         ];
     }
 }
