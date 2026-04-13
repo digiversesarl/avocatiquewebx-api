@@ -18,6 +18,18 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         /*
         |------------------------------------------------------------------
+        | API : Ne jamais rediriger vers une route [login].
+        | Les requêtes non authentifiées reçoivent directement un 401 JSON.
+        |------------------------------------------------------------------
+        */
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                abort(response()->json(['message' => 'Non authentifié.'], 401));
+            }
+        });
+
+        /*
+        |------------------------------------------------------------------
         | Middleware aliases
         |------------------------------------------------------------------
         */

@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             PaysSeeder::class,
             VilleSeeder::class,
             TranslationSeeder::class,
+            CabinetConfigSeeder::class,
+            ColorThemeSeeder::class,
         ]);
     }
 }

@@ -11,6 +11,7 @@ use App\Http\Controllers\GroupeController;
 use App\Http\Controllers\PaysController;
 use App\Http\Controllers\VilleController;
 use App\Http\Controllers\TranslationController;
+use App\Http\Controllers\Api\CabinetController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -134,5 +135,21 @@ Route::middleware('auth:sanctum')->group(function (): void {
             Route::get('/{translation}',        [TranslationController::class, 'show'])->name('show');
             Route::put('/{translation}',        [TranslationController::class, 'update'])->name('update');
             Route::delete('/{translation}',     [TranslationController::class, 'destroy'])->name('destroy');
+        });
+
+    // ── Configuration du Cabinet ──────────────────────────────────
+    Route::prefix('cabinet')
+        ->name('cabinet.')
+        ->group(function (): void {
+            Route::get('config', [CabinetController::class, 'getConfig'])->name('config.show');
+            Route::post('config', [CabinetController::class, 'updateConfig'])->name('config.update');
+            Route::post('upload-image', [CabinetController::class, 'uploadImage'])->name('upload-image');
+            Route::delete('delete-image', [CabinetController::class, 'deleteImage'])->name('delete-image');
+
+            // Color themes
+            Route::get('themes', [CabinetController::class, 'getThemes'])->name('themes.index');
+            Route::post('themes', [CabinetController::class, 'storeTheme'])->name('themes.store');
+            Route::put('themes/{colorTheme}', [CabinetController::class, 'updateTheme'])->name('themes.update');
+            Route::delete('themes/{colorTheme}', [CabinetController::class, 'destroyTheme'])->name('themes.destroy');
         });
 });
