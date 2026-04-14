@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\AuditLog;
 use App\Models\Departement;
 use App\Models\Groupe;
 use App\Models\Role;
@@ -153,9 +154,22 @@ class UserController extends Controller
 
             // Sync roles
             if ($request->has('roles')) {
+                $oldRoles = $user->roles->pluck('name')->toArray();
                 $user->roles()->sync(
                     Role::whereIn('name', $request->roles)->pluck('id')
                 );
+                $newRoles = $request->roles;
+                if ($oldRoles != $newRoles) {
+                    AuditLog::log(
+                        'role_granted',
+                        'roles',
+                        $user,
+                        ['roles' => $oldRoles],
+                        ['roles' => $newRoles],
+                        'success',
+                        'Rôles modifiés pour ' . $user->full_name_fr
+                    );
+                }
             }
 
             // Sync groupes
@@ -322,6 +336,16 @@ class UserController extends Controller
         $user->update([
             'password' => bcrypt($request->password),
         ]);
+
+        AuditLog::log(
+            'password_change',
+            'security',
+            $user,
+            null,
+            null,
+            'success',
+            'Mot de passe modifié pour ' . $user->email
+        );
 
         return response()->json(['message' => 'Mot de passe réinitialisé.']);
     }

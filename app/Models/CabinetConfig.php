@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class CabinetConfig extends Model
 {
+    use Auditable;
     protected $table = 'cabinet_configs';
 
     protected $fillable = [

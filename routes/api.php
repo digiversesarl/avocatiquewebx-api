@@ -12,6 +12,7 @@ use App\Http\Controllers\PaysController;
 use App\Http\Controllers\VilleController;
 use App\Http\Controllers\TranslationController;
 use App\Http\Controllers\Api\CabinetController;
+use App\Http\Controllers\Api\AuditController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -151,5 +152,19 @@ Route::middleware('auth:sanctum')->group(function (): void {
             Route::post('themes', [CabinetController::class, 'storeTheme'])->name('themes.store');
             Route::put('themes/{colorTheme}', [CabinetController::class, 'updateTheme'])->name('themes.update');
             Route::delete('themes/{colorTheme}', [CabinetController::class, 'destroyTheme'])->name('themes.destroy');
+        });
+
+    // ── Audit & Sécurité ──────────────────────────────────────────
+    Route::middleware('permission:admin.settings')
+        ->prefix('audit-logs')
+        ->name('audit.')
+        ->group(function (): void {
+            Route::get('/',            [AuditController::class, 'index'])->name('index');
+            Route::get('/users',       [AuditController::class, 'users'])->name('users');
+            Route::get('/stats',       [AuditController::class, 'stats'])->name('stats');
+            Route::get('/export/xlsx', [AuditController::class, 'exportXlsx'])->name('export.xlsx');
+            Route::get('/export/pdf',  [AuditController::class, 'exportPdf'])->name('export.pdf');
+            Route::get('/export/csv',  [AuditController::class, 'exportCsv'])->name('export.csv');
+            Route::get('/{auditLog}',  [AuditController::class, 'show'])->name('show');
         });
 });

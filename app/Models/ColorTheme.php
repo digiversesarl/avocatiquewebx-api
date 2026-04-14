@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class ColorTheme extends Model
 {
+    use Auditable;
     protected $table = 'color_themes';
 
     protected $fillable = [

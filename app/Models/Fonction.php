@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Traits\ReferentielTrait;
+use App\Models\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Fonction extends Model
 {
-    use HasFactory, ReferentielTrait;
+    use HasFactory, ReferentielTrait, Auditable;
 
     protected $table = 'fonctions';
 

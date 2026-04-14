@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Models\Traits\ReferentielTrait;
+use App\Models\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Ville extends Model
 {
-    use HasFactory, ReferentielTrait;
+    use HasFactory, ReferentielTrait, Auditable;
 
     protected $table = 'villes';
 

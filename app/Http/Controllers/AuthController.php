@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\LoginRequest;
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,12 +24,30 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
+            AuditLog::log(
+                'login_failure',
+                'auth',
+                $user,
+                null,
+                ['email' => $request->email],
+                'failure',
+                'Tentative de connexion échouée pour ' . $request->email
+            );
             throw ValidationException::withMessages([
                 'email' => ['Identifiants incorrects.'],
             ]);
         }
 
         if ($user->status !== 'active') {
+            AuditLog::log(
+                'login_failure',
+                'auth',
+                $user,
+                null,
+                ['reason' => 'account_disabled'],
+                'failure',
+                'Tentative de connexion sur compte désactivé : ' . $user->email
+            );
             return response()->json(
                 ['message' => 'Ce compte est désactivé. Contactez un administrateur.'],
                 403
@@ -36,6 +55,16 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('api-token')->plainTextToken;
+
+        AuditLog::log(
+            'login_success',
+            'auth',
+            $user,
+            null,
+            null,
+            'success',
+            'Connexion réussie pour ' . $user->email
+        );
 
         return response()->json([
             'token' => $token,
@@ -50,6 +79,16 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
+        AuditLog::log(
+            'logout',
+            'auth',
+            $request->user(),
+            null,
+            null,
+            'success',
+            'Déconnexion de ' . $request->user()->email
+        );
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Déconnexion réussie.']);
