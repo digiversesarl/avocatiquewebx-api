@@ -85,9 +85,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->prefix('users')
         ->name('users.')
         ->group(function (): void {
-            Route::post('reorder', [UserController::class, 'reorder'])->name('reorder');
-            Route::get('/',        [UserController::class, 'index'])->name('index');
-            Route::post('/',       [UserController::class, 'store'])->name('store');
+            Route::post('reorder',     [UserController::class, 'reorder'])->name('reorder');
+            Route::get('/',            [UserController::class, 'index'])->name('index');
+            Route::get('export-excel', [UserController::class, 'exportExcel'])->name('export-excel');
+            Route::get('export-pdf',   [UserController::class, 'exportPdf'])->name('export-pdf');
+            Route::post('/',           [UserController::class, 'store'])->name('store');
             Route::get('/{user}',  [UserController::class, 'show'])->name('show');
             Route::put('/{user}',  [UserController::class, 'update'])->name('update');
             Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');

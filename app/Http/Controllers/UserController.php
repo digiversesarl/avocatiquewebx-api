@@ -11,59 +11,135 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use OTPHP\TOTP;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\UserExportService;
 
 class UserController extends Controller
 {
     /**
      * GET /api/users
      *
-     * Liste paginée avec filtres : search, status, role, fonction, departement, groupe.
+     * Liste paginée avec tous les filtres (délégués à buildFilteredQuery).
      */
     public function index(Request $request): JsonResponse
     {
-        $users = User::with(['roles:id,name', 'groupes:id,label_fr', 'departements:id,label_fr', 'attachments'])
-            ->when(
-                $request->filled('search'),
-                fn ($q) => $q->where(function ($q) use ($request): void {
-                    $q->where('full_name_fr', 'like', "%{$request->search}%")
-                      ->orWhere('full_name_ar', 'like', "%{$request->search}%")
-                      ->orWhere('email', 'like', "%{$request->search}%")
-                      ->orWhere('matricule', 'like', "%{$request->search}%")
-                      ->orWhere('cin', 'like', "%{$request->search}%")
-                      ->orWhere('login', 'like', "%{$request->search}%");
-                })
-            )
-            ->when(
-                $request->filled('status'),
-                fn ($q) => $q->where('active', $request->status === 'active')
-            )
-            ->when(
-                $request->filled('role'),
-                fn ($q) => $q->whereHas(
-                    'roles',
-                    fn ($rq) => $rq->where('name', $request->role)
-                )
-            )
-            ->when(
-                $request->filled('fonction'),
-                fn ($q) => $q->where('fonction', $request->fonction)
-            )
-            ->when(
-                $request->filled('departement'),
-                fn ($q) => $q->where('departement', $request->departement)
-            )
-            ->when(
-                $request->filled('groupe'),
-                fn ($q) => $q->whereJsonContains('groupes', $request->groupe)
-            )
-            ->orderBy('classement')
-            ->orderBy('full_name_fr')
-            ->paginate((int) ($request->per_page ?? 20));
+        $users = $this->buildFilteredQuery(
+            $request,
+            ['roles:id,name', 'groupes:id,label_fr', 'departements:id,label_fr', 'attachments']
+        )->paginate((int) ($request->per_page ?? 20));
 
         return response()->json($users);
+    }
+
+    /**
+     * GET /api/users/export-excel
+     * Export Excel du personnel avec filtres
+     */
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        $users = $this->buildFilteredQuery($request, ['roles:id,name'])->get();
+
+        AuditLog::log(
+            'export_data',
+            'data',
+            null,
+            null,
+            ['format' => 'Excel', 'count' => $users->count(), 'filters' => $request->except(['page', 'per_page'])],
+            'success',
+            'Export Excel personnel (' . $users->count() . ' enregistrements)'
+        );
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Personnel');
+
+        $headers = [
+            'Matricule', 'Nom complet', 'Nom arabe', 'Login', 'Rôles',
+            'Département', 'Fonction', 'Langue', 'Email', 'Téléphone',
+            'CIN', "Date d'entrée", 'Actif',
+        ];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $headerStyle = $sheet->getStyle('A1:M1');
+        $headerStyle->getFont()->setBold(true);
+        $headerStyle->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('2563EB');
+        $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
+
+        $row = 2;
+        foreach ($users as $u) {
+            $sheet->fromArray([
+                $u->matricule,
+                $u->full_name_fr,
+                $u->full_name_ar,
+                $u->login,
+                $u->roles->pluck('name')->implode(', '),
+                $u->departement,
+                $u->fonction,
+                ($u->langue === 'fr' ? 'Français' : ($u->langue === 'en' ? 'English' : 'Arabe')),
+                $u->email,
+                $u->telephone,
+                $u->cin,
+                $u->date_entree ? substr($u->date_entree, 0, 10) : '',
+                $u->active ? 'Oui' : 'Non',
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'M') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+
+        return new StreamedResponse(function () use ($writer): void {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="personnel.xlsx"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    /**
+     * GET /api/users/export-pdf
+     * Export PDF du personnel avec filtres (mPDF)
+     */
+    public function exportPdf(Request $request, UserExportService $exportService): Response
+    {
+        $query = $this->buildFilteredQuery($request, ['roles:id,name']);
+
+        $users = $query->get();
+
+        $language  = $request->get('language', 'fr');
+        $timestamp = now()->format('Y-m-d_H-i-s');
+        $filename  = "personnel_{$timestamp}.pdf";
+
+        $content = $exportService->generatePdf($users, $language, $filename);
+
+        AuditLog::log(
+            'export_data',
+            'data',
+            null,
+            null,
+            ['format' => 'PDF', 'count' => $users->count(), 'filters' => $request->except(['page', 'per_page', 'language'])],
+            'success',
+            'Export PDF personnel (' . $users->count() . ' enregistrements)'
+        );
+
+        return response($content, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control'       => 'max-age=0',
+        ]);
     }
 
     /**
@@ -112,10 +188,9 @@ class UserController extends Controller
             }
         }
 
-        return response()->json(
-            $user->load(['roles:id,name', 'attachments']),
-            201
-        );
+        $loaded = $user->load(['roles:id,name', 'attachments']);
+
+        return response()->json($loaded, 201);
     }
 
     /**
@@ -154,22 +229,9 @@ class UserController extends Controller
 
             // Sync roles
             if ($request->has('roles')) {
-                $oldRoles = $user->roles->pluck('name')->toArray();
                 $user->roles()->sync(
                     Role::whereIn('name', $request->roles)->pluck('id')
                 );
-                $newRoles = $request->roles;
-                if ($oldRoles != $newRoles) {
-                    AuditLog::log(
-                        'role_granted',
-                        'roles',
-                        $user,
-                        ['roles' => $oldRoles],
-                        ['roles' => $newRoles],
-                        'success',
-                        'Rôles modifiés pour ' . $user->full_name_fr
-                    );
-                }
             }
 
             // Sync groupes
@@ -282,6 +344,16 @@ class UserController extends Controller
             'photo' => $request->file('photo')->store('personnel/photos', 'public'),
         ]);
 
+        AuditLog::log(
+            'record_updated',
+            'data',
+            $user,
+            null,
+            ['photo' => $user->photo],
+            'success',
+            'Photo mise à jour pour : ' . $user->full_name_fr
+        );
+
         return response()->json(['photo' => $user->photo]);
     }
 
@@ -307,6 +379,18 @@ class UserController extends Controller
             $attachments[] = $attachment;
         }
 
+        $names = array_map(fn ($a) => $a->name, $attachments);
+
+        AuditLog::log(
+            'record_updated',
+            'data',
+            $user,
+            null,
+            ['attachments_added' => $names],
+            'success',
+            'Pièces jointes ajoutées (' . count($names) . ') pour : ' . $user->full_name_fr
+        );
+
         return response()->json(['attachments' => $attachments]);
     }
 
@@ -317,6 +401,17 @@ class UserController extends Controller
     {
         $attachment = $user->attachments()->findOrFail($attachmentId);
         Storage::disk('public')->delete($attachment->file_path);
+
+        AuditLog::log(
+            'record_deleted',
+            'data',
+            $user,
+            ['attachment' => $attachment->name, 'type' => $attachment->type],
+            null,
+            'success',
+            'Pièce jointe supprimée : ' . $attachment->name . ' (personnel : ' . $user->full_name_fr . ')'
+        );
+
         $attachment->delete();
 
         return response()->json(['message' => 'Pièce jointe supprimée.']);
@@ -368,5 +463,64 @@ class UserController extends Controller
         }
 
         return response()->json(['message' => 'Ordre mis à jour.']);
+    }
+
+    // -------------------------------------------------------------------------
+    // Helper partagé : requête filtrée pour les exports
+    // -------------------------------------------------------------------------
+
+    private function buildFilteredQuery(Request $request, array $with = [])
+    {
+        return User::with($with)
+            ->when(
+                $request->filled('search'),
+                fn ($q) => $q->where(function ($q) use ($request): void {
+                    $q->where('full_name_fr', 'like', "%{$request->search}%")
+                      ->orWhere('full_name_ar', 'like', "%{$request->search}%")
+                      ->orWhere('email', 'like', "%{$request->search}%")
+                      ->orWhere('matricule', 'like', "%{$request->search}%")
+                      ->orWhere('cin', 'like', "%{$request->search}%")
+                      ->orWhere('login', 'like', "%{$request->search}%");
+                })
+            )
+            ->when($request->filled('active'),             fn ($q) => $q->where('active', (bool) $request->active))
+            ->when($request->filled('fonction'),           fn ($q) => $q->where('fonction', $request->fonction))
+            ->when($request->filled('departement'),        fn ($q) => $q->where('departement', $request->departement))
+            ->when($request->filled('groupe'),             fn ($q) => $q->whereHas('groupes', fn ($gq) => $gq->where('label_fr', $request->groupe)))
+            ->when($request->filled('langue'),             fn ($q) => $q->where('langue', $request->langue))
+            ->when($request->filled('grade_avocat'),       fn ($q) => $q->where('grade_avocat', $request->grade_avocat))
+            ->when($request->filled('avocat_proprietaire'), fn ($q) => $q->where('avocat_proprietaire', (bool) $request->avocat_proprietaire))
+            ->when($request->filled('is_admin'),           fn ($q) => $q->where('is_admin', (bool) $request->is_admin))
+            ->when($request->filled('cin'),                fn ($q) => $q->where('cin', 'like', "%{$request->cin}%"))
+            ->when($request->filled('telephone'),          fn ($q) => $q->where('telephone', 'like', "%{$request->telephone}%"))
+            ->when($request->filled('date_from'),          fn ($q) => $q->where('date_entree', '>=', $request->date_from))
+            ->when($request->filled('date_to'),            fn ($q) => $q->where('date_entree', '<=', $request->date_to))
+            ->when($request->filled('tfa_enabled'),        fn ($q) => $q->where('tfa_enabled', (bool) $request->tfa_enabled))
+            ->when(
+                $request->filled('sort_by'),
+                function ($q) use ($request) {
+                    $columnMap = [
+                        'classement'  => 'classement',
+                        'matricule'   => 'matricule',
+                        'fullNameFr'  => 'full_name_fr',
+                        'full_name_fr'=> 'full_name_fr',
+                        'fullNameAr'  => 'full_name_ar',
+                        'full_name_ar'=> 'full_name_ar',
+                        'login'       => 'login',
+                        'email'       => 'email',
+                        'departement' => 'departement',
+                        'fonction'    => 'fonction',
+                        'langue'      => 'langue',
+                    ];
+                    $col = $columnMap[$request->sort_by] ?? null;
+                    $dir = $request->get('sort_dir', 'asc') === 'desc' ? 'desc' : 'asc';
+                    if ($col) {
+                        $q->orderBy($col, $dir);
+                    } else {
+                        $q->orderBy('classement')->orderBy('full_name_fr');
+                    }
+                },
+                fn ($q) => $q->orderBy('classement')->orderBy('full_name_fr')
+            );
     }
 }
