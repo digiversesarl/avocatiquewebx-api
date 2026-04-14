@@ -11,13 +11,34 @@ class TranslationController extends Controller
     /**
      * GET /api/translations
      *
-     * Liste toutes les traductions
+     * Liste paginée des traductions avec recherche et tri.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $translations = Translation::orderBy('code')->get();
+        // Requête publique (sans auth) : retourner toutes les traductions d'un coup
+        if (!$request->has('per_page') && !$request->has('page')) {
+            return response()->json(Translation::orderBy('code')->get());
+        }
 
-        return response()->json($translations);
+        $query = Translation::query()
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $s = '%' . $request->search . '%';
+                $q->where(function ($q) use ($s) {
+                    $q->where('code', 'like', $s)
+                      ->orWhere('libelle_fr', 'like', $s)
+                      ->orWhere('libelle_ar', 'like', $s)
+                      ->orWhere('libelle_en', 'like', $s);
+                });
+            });
+
+        $allowedSorts = ['code', 'libelle_fr', 'libelle_ar', 'libelle_en'];
+        $sortBy  = in_array($request->input('sort_by'), $allowedSorts) ? $request->input('sort_by') : 'code';
+        $sortDir = $request->input('sort_dir') === 'desc' ? 'desc' : 'asc';
+        $query->orderBy($sortBy, $sortDir);
+
+        $perPage = min((int) $request->input('per_page', 20), 200);
+
+        return response()->json($query->paginate($perPage));
     }
 
     /**
