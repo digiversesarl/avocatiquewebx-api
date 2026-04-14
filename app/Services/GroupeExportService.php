@@ -6,9 +6,12 @@ use Illuminate\Support\Collection;
 
 class GroupeExportService extends BasePdfExportService
 {
-    public function __construct(private readonly TranslationService $t)
+     private TranslationService $t;
+
+    public function __construct(TranslationService $t)
     {
         parent::__construct();
+        $this->t = $t;
     }
 
     public function generatePdf(Collection $groupes, string $language = 'fr', string $title = '', string $filename = 'groupes.pdf'): string

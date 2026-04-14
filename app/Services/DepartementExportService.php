@@ -3,12 +3,16 @@
 namespace App\Services;
 
 use Illuminate\Support\Collection;
+use App\Services\TranslationService;
 
 class DepartementExportService extends BasePdfExportService
 {
-    public function __construct(private readonly TranslationService $t)
+    private TranslationService $t;
+
+    public function __construct(TranslationService $t)
     {
         parent::__construct();
+        $this->t = $t;
     }
 
     public function generatePdf(Collection $departements, string $language = 'fr', string $title = '', string $filename = 'departements.pdf'): string
