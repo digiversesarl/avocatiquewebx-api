@@ -105,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
             Route::get('/',            [UserController::class, 'index'])->name('index');
             Route::get('export-excel', [UserController::class, 'exportExcel'])->name('export-excel');
             Route::get('export-pdf',   [UserController::class, 'exportPdf'])->name('export-pdf');
+            Route::get('export-csv',   [UserController::class, 'exportCsv'])->name('export-csv');
             Route::post('/',           [UserController::class, 'store'])->name('store');
             Route::get('/{user}',  [UserController::class, 'show'])->name('show');
             Route::put('/{user}',  [UserController::class, 'update'])->name('update');

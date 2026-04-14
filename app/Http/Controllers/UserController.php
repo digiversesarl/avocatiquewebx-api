@@ -147,6 +147,64 @@ class UserController extends Controller
     }
 
     /**
+     * GET /api/users/export-csv
+     * Export CSV du personnel avec filtres
+     */
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $users = $this->buildFilteredQuery($request, ['roles:id,name'])->get();
+
+        AuditLog::log(
+            'export_data',
+            'data',
+            null,
+            null,
+            ['format' => 'CSV', 'source' => 'Personnel', 'count' => $users->count(), 'filters' => $request->except(['page', 'per_page'])],
+            'success',
+            'Export CSV — Personnel (' . $users->count() . ' enregistrements)',
+            null,
+            'Personnel — CSV (' . $users->count() . ')'
+        );
+
+        $timestamp = now()->format('Y-m-d_H-i-s');
+        $filename  = "personnel_{$timestamp}.csv";
+
+        $headers = [
+            'Matricule', 'Nom complet', 'Nom arabe', 'Login', 'R\u00f4les',
+            'D\u00e9partement', 'Fonction', 'Langue', 'Email', 'T\u00e9l\u00e9phone',
+            'CIN', "Date d'entr\u00e9e", 'Actif',
+        ];
+
+        return new StreamedResponse(function () use ($users, $headers): void {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
+            fputcsv($out, $headers, ';');
+            foreach ($users as $u) {
+                fputcsv($out, [
+                    $u->matricule,
+                    $u->full_name_fr,
+                    $u->full_name_ar,
+                    $u->login,
+                    $u->roles->pluck('name')->implode(', '),
+                    $u->departement,
+                    $u->fonction,
+                    ($u->langue === 'fr' ? 'Fran\u00e7ais' : ($u->langue === 'en' ? 'English' : 'Arabe')),
+                    $u->email,
+                    $u->telephone,
+                    $u->cin,
+                    $u->date_entree ? substr($u->date_entree, 0, 10) : '',
+                    $u->active ? 'Oui' : 'Non',
+                ], ';');
+            }
+            fclose($out);
+        }, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control'       => 'max-age=0',
+        ]);
+    }
+
+    /**
      * POST /api/users
      */
     public function store(StoreUserRequest $request): JsonResponse
