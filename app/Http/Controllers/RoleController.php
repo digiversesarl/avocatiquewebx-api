@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreRoleRequest;
 use App\Http\Requests\UpdateRoleRequest;
+use App\Models\AuditLog;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\JsonResponse;
@@ -30,8 +31,12 @@ class RoleController extends Controller
         $role = Role::create($request->only(['name', 'display_name', 'description']));
 
         if ($request->filled('permissions')) {
-            $role->permissions()->sync(
-                Permission::whereIn('name', $request->permissions)->pluck('id')
+            AuditLog::auditSync(
+                $role,
+                'permissions',
+                Permission::whereIn('name', $request->permissions)->pluck('id')->toArray(),
+                'role_granted',
+                'roles'
             );
         }
 
@@ -54,8 +59,12 @@ class RoleController extends Controller
         $role->update($request->only(['display_name', 'description']));
 
         if ($request->has('permissions')) {
-            $role->permissions()->sync(
-                Permission::whereIn('name', $request->permissions)->pluck('id')
+            AuditLog::auditSync(
+                $role,
+                'permissions',
+                Permission::whereIn('name', $request->permissions)->pluck('id')->toArray(),
+                'role_granted',
+                'roles'
             );
         }
 

@@ -31,7 +31,8 @@ class AuthController extends Controller
                 null,
                 ['email' => $request->email],
                 'failure',
-                'Tentative de connexion échouée pour ' . $request->email
+                'Tentative de connexion échouée pour ' . $request->email,
+                $user
             );
             throw ValidationException::withMessages([
                 'email' => ['Identifiants incorrects.'],
@@ -46,7 +47,8 @@ class AuthController extends Controller
                 null,
                 ['reason' => 'account_disabled'],
                 'failure',
-                'Tentative de connexion sur compte désactivé : ' . $user->email
+                'Tentative de connexion sur compte désactivé : ' . $user->email,
+                $user
             );
             return response()->json(
                 ['message' => 'Ce compte est désactivé. Contactez un administrateur.'],
@@ -63,7 +65,8 @@ class AuthController extends Controller
             null,
             null,
             'success',
-            'Connexion réussie pour ' . $user->email
+            'Connexion réussie pour ' . $user->email,
+            $user
         );
 
         return response()->json([

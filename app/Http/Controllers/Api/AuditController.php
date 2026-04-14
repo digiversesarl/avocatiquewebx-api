@@ -123,15 +123,18 @@ class AuditController extends Controller
     {
         $query = $this->buildExportQuery($request);
         $language = $request->query('lang', 'fr');
+        $count = (clone $query)->count();
 
         AuditLog::log(
             'export_data',
             'security',
             null,
             null,
-            ['type' => 'audit_logs_xlsx'],
+            ['format' => 'XLSX', 'source' => 'Journal d\'audit', 'count' => $count],
             'success',
-            'Export XLSX des logs d\'audit'
+            'Export XLSX — Journal d\'audit (' . $count . ' enregistrements)',
+            null,
+            'Journal d\'audit — XLSX (' . $count . ')'
         );
 
         $timestamp = now()->format('Y-m-d_H-i-s');
@@ -152,15 +155,18 @@ class AuditController extends Controller
     {
         $query = $this->buildExportQuery($request);
         $language = $request->query('lang', 'fr');
+        $count = (clone $query)->count();
 
         AuditLog::log(
             'export_data',
             'security',
             null,
             null,
-            ['type' => 'audit_logs_pdf'],
+            ['format' => 'PDF', 'source' => 'Journal d\'audit', 'count' => $count],
             'success',
-            'Export PDF des logs d\'audit'
+            'Export PDF — Journal d\'audit (' . $count . ' enregistrements)',
+            null,
+            'Journal d\'audit — PDF (' . $count . ')'
         );
 
         $timestamp = now()->format('Y-m-d_H-i-s');
@@ -180,15 +186,18 @@ class AuditController extends Controller
     public function exportCsv(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $query = $this->buildExportQuery($request);
+        $count = (clone $query)->count();
 
         AuditLog::log(
             'export_data',
             'security',
             null,
             null,
-            ['type' => 'audit_logs_csv'],
+            ['format' => 'CSV', 'source' => 'Journal d\'audit', 'count' => $count],
             'success',
-            'Export CSV des logs d\'audit'
+            'Export CSV — Journal d\'audit (' . $count . ' enregistrements)',
+            null,
+            'Journal d\'audit — CSV (' . $count . ')'
         );
 
         $filename = 'audit-logs-' . now()->format('Y-m-d_H-i-s') . '.csv';

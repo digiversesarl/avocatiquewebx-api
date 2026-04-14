@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Departement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -101,9 +102,7 @@ class DepartementController extends Controller
             'items.*.classement' => 'required|integer',
         ]);
 
-        foreach ($request->items as $item) {
-            Departement::where('id', $item['id'])->update(['classement' => $item['classement']]);
-        }
+        AuditLog::auditReorder(Departement::class, $request->items, 'classement');
 
         return response()->json(['message' => 'Ordre mis à jour.']);
     }

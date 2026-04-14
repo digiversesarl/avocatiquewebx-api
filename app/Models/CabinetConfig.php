@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 class CabinetConfig extends Model
 {
     use Auditable;
+
+    public function auditCategory(): string
+    {
+        return 'settings';
+    }
+
     protected $table = 'cabinet_configs';
 
     protected $fillable = [

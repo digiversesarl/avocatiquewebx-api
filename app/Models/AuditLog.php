@@ -72,9 +72,11 @@ class AuditLog extends Model
         ?array $oldValues = null,
         ?array $newValues = null,
         string $result = 'success',
-        ?string $description = null
+        ?string $description = null,
+        ?Model $actingUser = null,
+        ?string $label = null
     ): self {
-        $user = auth()->user();
+        $user = $actingUser ?? auth()->user();
         $request = request();
 
         $userName = 'Système';
@@ -89,7 +91,7 @@ class AuditLog extends Model
             'category'        => $category,
             'auditable_type'  => $auditable ? get_class($auditable) : null,
             'auditable_id'    => $auditable ? $auditable->getKey() : null,
-            'auditable_label' => $auditable ? self::resolveLabel($auditable) : null,
+            'auditable_label' => $auditable ? self::resolveLabel($auditable) : $label,
             'old_values'      => $oldValues,
             'new_values'      => $newValues,
             'result'          => $result,
@@ -112,5 +114,91 @@ class AuditLog extends Model
         }
 
         return class_basename($model) . ' #' . $model->getKey();
+    }
+
+    // ── Helpers spécialisés ───────────────────────────────────────
+
+    /**
+     * Audite une opération sync() sur une relation BelongsToMany.
+     *
+     * Compare les IDs actuels avec les nouveaux, log les ajouts/retraits,
+     * puis exécute le sync().
+     *
+     * @param  Model   $parent     Le modèle parent (User, Role, MenuItem…)
+     * @param  string  $relation   Nom de la relation ('roles', 'permissions', 'groupes'…)
+     * @param  array   $newIds     Les nouveaux IDs à synchroniser
+     * @param  string  $action     Action d'audit ('role_granted', 'settings_changed'…)
+     * @param  string  $category   Catégorie ('roles', 'data', 'settings'…)
+     * @return array               Résultat du sync() (attached, detached, updated)
+     */
+    public static function auditSync(
+        Model $parent,
+        string $relation,
+        array $newIds,
+        string $action = 'record_updated',
+        string $category = 'data'
+    ): array {
+        $currentIds = $parent->$relation()->pluck('id')->toArray();
+
+        $added   = array_values(array_diff($newIds, $currentIds));
+        $removed = array_values(array_diff($currentIds, $newIds));
+
+        $result = $parent->$relation()->sync($newIds);
+
+        if (!empty($added) || !empty($removed)) {
+            self::log(
+                $action,
+                $category,
+                $parent,
+                !empty($removed) ? [$relation . '_removed' => $removed] : null,
+                !empty($added)   ? [$relation . '_added'   => $added]   : null,
+                'success',
+                class_basename($parent) . " — {$relation} synchronisés"
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Audite une opération de réordonnancement (reorder).
+     *
+     * Log un seul événement résumant tous les changements de classement.
+     *
+     * @param  string  $modelClass  FQCN du modèle (Pays::class, MenuItem::class…)
+     * @param  array   $items       Tableau [['id' => x, 'classement' => y], …]
+     * @param  string  $field       Nom du champ d'ordre ('classement', 'ordre')
+     */
+    public static function auditReorder(string $modelClass, array $items, string $field = 'classement'): void
+    {
+        $ids = array_column($items, 'id');
+        $models = $modelClass::whereIn('id', $ids)->pluck($field, 'id')->toArray();
+
+        $changes = [];
+        foreach ($items as $item) {
+            $oldVal = $models[$item['id']] ?? null;
+            $newVal = $item[$field] ?? $item['classement'] ?? $item['ordre'] ?? null;
+            if ($oldVal !== null && (int) $oldVal !== (int) $newVal) {
+                $changes[$item['id']] = ['old' => (int) $oldVal, 'new' => (int) $newVal];
+            }
+        }
+
+        // Exécuter les updates
+        foreach ($items as $item) {
+            $modelClass::where('id', $item['id'])->update([$field => $item[$field] ?? $item['classement'] ?? $item['ordre']]);
+        }
+
+        // Logger si des changements réels
+        if (!empty($changes)) {
+            self::log(
+                'record_updated',
+                'data',
+                null,
+                ['reorder_before' => $changes],
+                ['model' => class_basename($modelClass), 'count' => count($changes)],
+                'success',
+                class_basename($modelClass) . ' — réordonnancement (' . count($changes) . ' éléments)'
+            );
+        }
     }
 }

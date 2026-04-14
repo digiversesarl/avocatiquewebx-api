@@ -11,6 +11,11 @@ class Role extends Model
 {
     use HasFactory, Auditable;
 
+    public function auditCategory(): string
+    {
+        return 'roles';
+    }
+
     protected $fillable = [
         'name',
         'level',

@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 class ColorTheme extends Model
 {
     use Auditable;
+
+    public function auditCategory(): string
+    {
+        return 'settings';
+    }
+
     protected $table = 'color_themes';
 
     protected $fillable = [

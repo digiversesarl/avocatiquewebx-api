@@ -3,13 +3,12 @@
 namespace App\Models;
 
 use App\Models\Traits\ReferentielTrait;
-use App\Models\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Grade extends Model
 {
-    use HasFactory, ReferentielTrait, Auditable;
+    use HasFactory, ReferentielTrait;
 
     protected $table = 'grades';
 

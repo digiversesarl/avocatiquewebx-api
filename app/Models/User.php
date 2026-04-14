@@ -15,6 +15,16 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, Auditable;
 
+    public function auditCategory(): string
+    {
+        return 'security';
+    }
+
+    public function auditExcludedFields(): array
+    {
+        return ['photo', 'couleur_fond', 'couleur_texte'];
+    }
+
     protected $fillable = [
         'matricule', 'email', 'full_name_fr', 'full_name_ar',
         'abbreviation_fr', 'abbreviation_ar', 'photo',

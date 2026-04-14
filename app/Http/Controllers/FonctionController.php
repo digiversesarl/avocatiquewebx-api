@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Fonction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -108,9 +109,7 @@ class FonctionController extends Controller
             'items.*.classement' => 'required|integer',
         ]);
 
-        foreach ($request->items as $item) {
-            Fonction::where('id', $item['id'])->update(['classement' => $item['classement']]);
-        }
+        AuditLog::auditReorder(Fonction::class, $request->items, 'classement');
 
         return response()->json(['message' => 'Ordre mis à jour.']);
     }

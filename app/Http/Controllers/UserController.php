@@ -51,9 +51,11 @@ class UserController extends Controller
             'data',
             null,
             null,
-            ['format' => 'Excel', 'count' => $users->count(), 'filters' => $request->except(['page', 'per_page'])],
+            ['format' => 'Excel', 'source' => 'Personnel', 'count' => $users->count(), 'filters' => $request->except(['page', 'per_page'])],
             'success',
-            'Export Excel personnel (' . $users->count() . ' enregistrements)'
+            'Export Excel — Personnel (' . $users->count() . ' enregistrements)',
+            null,
+            'Personnel — Excel (' . $users->count() . ')'
         );
 
         $spreadsheet = new Spreadsheet();
@@ -130,9 +132,11 @@ class UserController extends Controller
             'data',
             null,
             null,
-            ['format' => 'PDF', 'count' => $users->count(), 'filters' => $request->except(['page', 'per_page', 'language'])],
+            ['format' => 'PDF', 'source' => 'Personnel', 'count' => $users->count(), 'filters' => $request->except(['page', 'per_page', 'language'])],
             'success',
-            'Export PDF personnel (' . $users->count() . ' enregistrements)'
+            'Export PDF — Personnel (' . $users->count() . ' enregistrements)',
+            null,
+            'Personnel — PDF (' . $users->count() . ')'
         );
 
         return response($content, 200, [
@@ -158,22 +162,34 @@ class UserController extends Controller
 
         // Sync roles
         if ($request->filled('roles')) {
-            $user->roles()->sync(
-                Role::whereIn('name', $request->roles)->pluck('id')
+            AuditLog::auditSync(
+                $user,
+                'roles',
+                Role::whereIn('name', $request->roles)->pluck('id')->toArray(),
+                'role_granted',
+                'roles'
             );
         }
 
         // Sync groupes
         if ($request->filled('groupes')) {
-            $user->groupes()->sync(
-                Groupe::whereIn('label_fr', $request->groupes)->pluck('id')
+            AuditLog::auditSync(
+                $user,
+                'groupes',
+                Groupe::whereIn('label_fr', $request->groupes)->pluck('id')->toArray(),
+                'record_updated',
+                'data'
             );
         }
 
         // Sync departements
         if ($request->filled('departements')) {
-            $user->departements()->sync(
-                Departement::whereIn('label_fr', $request->departements)->pluck('id')
+            AuditLog::auditSync(
+                $user,
+                'departements',
+                Departement::whereIn('label_fr', $request->departements)->pluck('id')->toArray(),
+                'record_updated',
+                'data'
             );
         }
 
@@ -229,22 +245,34 @@ class UserController extends Controller
 
             // Sync roles
             if ($request->has('roles')) {
-                $user->roles()->sync(
-                    Role::whereIn('name', $request->roles)->pluck('id')
+                AuditLog::auditSync(
+                    $user,
+                    'roles',
+                    Role::whereIn('name', $request->roles)->pluck('id')->toArray(),
+                    'role_granted',
+                    'roles'
                 );
             }
 
             // Sync groupes
             if ($request->has('groupes')) {
-                $user->groupes()->sync(
-                    Groupe::whereIn('label_fr', $request->groupes)->pluck('id')
+                AuditLog::auditSync(
+                    $user,
+                    'groupes',
+                    Groupe::whereIn('label_fr', $request->groupes)->pluck('id')->toArray(),
+                    'record_updated',
+                    'data'
                 );
             }
 
             // Sync departements
             if ($request->has('departements')) {
-                $user->departements()->sync(
-                    Departement::whereIn('label_fr', $request->departements)->pluck('id')
+                AuditLog::auditSync(
+                    $user,
+                    'departements',
+                    Departement::whereIn('label_fr', $request->departements)->pluck('id')->toArray(),
+                    'record_updated',
+                    'data'
                 );
             }
 
@@ -458,9 +486,7 @@ class UserController extends Controller
             'order.*.classement' => 'required|string',
         ])['order'];
 
-        foreach ($order as $item) {
-            User::where('id', $item['id'])->update(['classement' => $item['classement']]);
-        }
+        AuditLog::auditReorder(User::class, $order, 'classement');
 
         return response()->json(['message' => 'Ordre mis à jour.']);
     }

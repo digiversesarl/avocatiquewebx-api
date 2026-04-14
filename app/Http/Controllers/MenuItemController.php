@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ReorderMenuItemsRequest;
 use App\Http\Requests\StoreMenuItemRequest;
 use App\Http\Requests\UpdateMenuItemRequest;
+use App\Models\AuditLog;
 use App\Models\MenuItem;
 use App\Models\Role;
 use Illuminate\Http\JsonResponse;
@@ -82,8 +83,12 @@ class MenuItemController extends Controller
         ]);
 
         if ($request->filled('roles')) {
-            $item->roles()->sync(
-                Role::whereIn('name', $request->roles)->pluck('id')
+            AuditLog::auditSync(
+                $item,
+                'roles',
+                Role::whereIn('name', $request->roles)->pluck('id')->toArray(),
+                'role_granted',
+                'settings'
             );
         }
 
@@ -109,8 +114,12 @@ class MenuItemController extends Controller
         ]));
 
         if ($request->has('roles')) {
-            $menuItem->roles()->sync(
-                Role::whereIn('name', $request->roles)->pluck('id')
+            AuditLog::auditSync(
+                $menuItem,
+                'roles',
+                Role::whereIn('name', $request->roles)->pluck('id')->toArray(),
+                'role_granted',
+                'settings'
             );
         }
 
@@ -146,9 +155,7 @@ class MenuItemController extends Controller
      */
     public function reorder(ReorderMenuItemsRequest $request): JsonResponse
     {
-        foreach ($request->validated('items') as $item) {
-            MenuItem::where('id', $item['id'])->update(['ordre' => $item['ordre']]);
-        }
+        AuditLog::auditReorder(MenuItem::class, $request->validated('items'), 'ordre');
 
         return response()->json(['message' => 'Ordre mis à jour.']);
     }

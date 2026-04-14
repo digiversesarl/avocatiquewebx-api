@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Pays;
 use App\Services\PaysExportService;
 use Illuminate\Http\JsonResponse;
@@ -110,9 +111,7 @@ class PaysController extends Controller
             'items.*.classement' => 'required|integer',
         ]);
 
-        foreach ($request->items as $item) {
-            Pays::where('id', $item['id'])->update(['classement' => $item['classement']]);
-        }
+        AuditLog::auditReorder(Pays::class, $request->items, 'classement');
 
         return response()->json(['message' => 'Ordre mis à jour.']);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Groupe;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -104,9 +105,7 @@ class GroupeController extends Controller
             'items.*.classement' => 'required|integer',
         ]);
 
-        foreach ($request->items as $item) {
-            Groupe::where('id', $item['id'])->update(['classement' => $item['classement']]);
-        }
+        AuditLog::auditReorder(Groupe::class, $request->items, 'classement');
 
         return response()->json(['message' => 'Ordre mis à jour.']);
     }

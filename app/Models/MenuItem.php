@@ -12,6 +12,12 @@ use App\Models\Traits\Auditable;
 class MenuItem extends Model
 {
     use Auditable;
+
+    public function auditCategory(): string
+    {
+        return 'settings';
+    }
+
     protected $fillable = [
         'parent_id',
         'label_fr',
