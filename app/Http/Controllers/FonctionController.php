@@ -100,7 +100,12 @@ class FonctionController extends Controller
     {
         $copy = $fonction->replicate();
         $copy->label_fr = $fonction->label_fr . ' (copie)';
-        $copy->code = null;
+        if ($fonction->code) {
+            $base = substr($fonction->code, 0, 16);
+            $i = 1;
+            do { $candidate = $base . '_CP' . $i++; } while (Fonction::where('code', $candidate)->exists());
+            $copy->code = $candidate;
+        }
         $copy->classement = Fonction::max('classement') + 1;
         $copy->save();
 

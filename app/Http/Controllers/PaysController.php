@@ -100,7 +100,9 @@ class PaysController extends Controller
     {
         $copy = $pays->replicate();
         $copy->label_fr = $pays->label_fr . ' (copie)';
-        $copy->code = null;
+        $i = 1;
+        do { $candidate = substr($pays->code, 0, 2) . $i++; } while (Pays::where('code', $candidate)->exists());
+        $copy->code = $candidate;
         $copy->classement = Pays::max('classement') + 1;
         $copy->save();
 

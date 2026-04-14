@@ -97,6 +97,10 @@ class GradeController extends Controller
     {
         $copy = $grade->replicate();
         $copy->label_fr = $grade->label_fr . ' (copie)';
+        $base = substr($grade->code, 0, 16);
+        $i = 1;
+        do { $candidate = $base . '_CP' . $i++; } while (Grade::where('code', $candidate)->exists());
+        $copy->code = $candidate;
         $copy->classement = Grade::max('classement') + 1;
         $copy->save();
 

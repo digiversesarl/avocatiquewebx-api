@@ -97,6 +97,12 @@ class GroupeController extends Controller
     {
         $copy = $groupe->replicate();
         $copy->label_fr = $groupe->label_fr . ' (copie)';
+        if ($groupe->code) {
+            $base = substr($groupe->code, 0, 16);
+            $i = 1;
+            do { $candidate = $base . '_CP' . $i++; } while (Groupe::where('code', $candidate)->exists());
+            $copy->code = $candidate;
+        }
         $copy->classement = Groupe::max('classement') + 1;
         $copy->save();
 
