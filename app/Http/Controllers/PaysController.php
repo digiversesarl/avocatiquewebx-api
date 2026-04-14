@@ -8,6 +8,10 @@ use App\Services\PaysExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class PaysController extends Controller
 {
@@ -138,5 +142,112 @@ class PaysController extends Controller
         return response($pdf)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+    }
+
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        $pays = Pays::orderBy('classement')->get();
+        $count = $pays->count();
+
+        AuditLog::log(
+            'export_data',
+            'referentiel',
+            null,
+            null,
+            ['format' => 'Excel', 'source' => 'Pays', 'count' => $count],
+            'success',
+            'Export Excel — Pays (' . $count . ' enregistrements)',
+            null,
+            'Pays — Excel (' . $count . ')'
+        );
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Pays');
+
+        $headers = ['#', 'Code', 'Label FR', 'Label AR', 'Label EN', 'Classement', 'Couleur fond', 'Couleur texte', 'Défaut', 'Actif'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $headerStyle = $sheet->getStyle('A1:J1');
+        $headerStyle->getFont()->setBold(true);
+        $headerStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('2563EB');
+        $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
+
+        $row = 2;
+        foreach ($pays as $item) {
+            $sheet->fromArray([
+                $item->id,
+                $item->code ?? '',
+                $item->label_fr,
+                $item->label_ar,
+                $item->label_en ?? '',
+                $item->classement,
+                $item->bg_color ?? '',
+                $item->text_color ?? '',
+                $item->is_default ? 'Oui' : 'Non',
+                $item->is_active !== false ? 'Oui' : 'Non',
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'J') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'pays_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
+
+        return new StreamedResponse(function () use ($writer): void {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $pays = Pays::orderBy('classement')->get();
+        $count = $pays->count();
+
+        AuditLog::log(
+            'export_data',
+            'referentiel',
+            null,
+            null,
+            ['format' => 'CSV', 'source' => 'Pays', 'count' => $count],
+            'success',
+            'Export CSV — Pays (' . $count . ' enregistrements)',
+            null,
+            'Pays — CSV (' . $count . ')'
+        );
+
+        $filename = 'pays_' . now()->format('Y-m-d_H-i-s') . '.csv';
+
+        return response()->streamDownload(function () use ($pays) {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($handle, ['#', 'Code', 'Label FR', 'Label AR', 'Label EN', 'Classement', 'Couleur fond', 'Couleur texte', 'Défaut', 'Actif']);
+
+            foreach ($pays as $country) {
+                fputcsv($handle, [
+                    $country->id,
+                    $country->code ?? '',
+                    $country->label_fr,
+                    $country->label_ar,
+                    $country->label_en ?? '',
+                    $country->classement,
+                    $country->bg_color ?? '',
+                    $country->text_color ?? '',
+                    $country->is_default ? 'Oui' : 'Non',
+                    $country->is_active !== false ? 'Oui' : 'Non',
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+        ]);
     }
 }

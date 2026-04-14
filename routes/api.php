@@ -49,33 +49,49 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     // ── Administration : Référentiels ─────────────────────────────────
     Route::post('fonctions/reorder', [FonctionController::class, 'reorder']);
+    Route::get('fonctions/export/pdf', [FonctionController::class, 'exportPdf']);
+    Route::get('fonctions/export/csv', [FonctionController::class, 'exportCsv']);
+    Route::get('fonctions/export/excel', [FonctionController::class, 'exportExcel']);
     Route::apiResource('fonctions', FonctionController::class);
     Route::patch('fonctions/{fonction}/toggle-active', [FonctionController::class, 'toggleActive']);
     Route::post('fonctions/{fonction}/duplicate', [FonctionController::class, 'duplicate']);
 
     Route::post('grades/reorder', [GradeController::class, 'reorder']);
+    Route::get('grades/export/pdf', [GradeController::class, 'exportPdf']);
+    Route::get('grades/export/csv', [GradeController::class, 'exportCsv']);
+    Route::get('grades/export/excel', [GradeController::class, 'exportExcel']);
     Route::apiResource('grades', GradeController::class);
     Route::patch('grades/{grade}/toggle-active', [GradeController::class, 'toggleActive']);
     Route::post('grades/{grade}/duplicate', [GradeController::class, 'duplicate']);
 
     Route::post('departements/reorder', [DepartementController::class, 'reorder']);
+    Route::get('departements/export/pdf', [DepartementController::class, 'exportPdf']);
+    Route::get('departements/export/csv', [DepartementController::class, 'exportCsv']);
+    Route::get('departements/export/excel', [DepartementController::class, 'exportExcel']);
     Route::apiResource('departements', DepartementController::class);
     Route::patch('departements/{departement}/toggle-active', [DepartementController::class, 'toggleActive']);
     Route::post('departements/{departement}/duplicate', [DepartementController::class, 'duplicate']);
 
     Route::post('groupes/reorder', [GroupeController::class, 'reorder']);
+    Route::get('groupes/export/pdf', [GroupeController::class, 'exportPdf']);
+    Route::get('groupes/export/csv', [GroupeController::class, 'exportCsv']);
+    Route::get('groupes/export/excel', [GroupeController::class, 'exportExcel']);
     Route::apiResource('groupes', GroupeController::class);
     Route::patch('groupes/{groupe}/toggle-active', [GroupeController::class, 'toggleActive']);
     Route::post('groupes/{groupe}/duplicate', [GroupeController::class, 'duplicate']);
 
     Route::post('pays/reorder', [PaysController::class, 'reorder']);
     Route::get('pays/export/pdf', [PaysController::class, 'exportPdf']);
+    Route::get('pays/export/csv', [PaysController::class, 'exportCsv']);
+    Route::get('pays/export/excel', [PaysController::class, 'exportExcel']);
     Route::apiResource('pays', PaysController::class)->parameters(['pays' => 'pays']);
     Route::patch('pays/{pays}/toggle-active', [PaysController::class, 'toggleActive']);
     Route::post('pays/{pays}/duplicate', [PaysController::class, 'duplicate']);
 
     Route::post('villes/reorder', [VilleController::class, 'reorder']);
     Route::get('villes/export/pdf', [VilleController::class, 'exportPdf']);
+    Route::get('villes/export/csv', [VilleController::class, 'exportCsv']);
+    Route::get('villes/export/excel', [VilleController::class, 'exportExcel']);
     Route::apiResource('villes', VilleController::class);
     Route::patch('villes/{ville}/toggle-active', [VilleController::class, 'toggleActive']);
     Route::post('villes/{ville}/duplicate', [VilleController::class, 'duplicate']);

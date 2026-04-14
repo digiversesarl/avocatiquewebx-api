@@ -8,6 +8,10 @@ use App\Services\VillesExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class VilleController extends Controller
 {
@@ -136,5 +140,114 @@ class VilleController extends Controller
         return response($pdf)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+    }
+
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        $villes = Ville::with('pays')->orderBy('classement')->get();
+        $count = $villes->count();
+
+        AuditLog::log(
+            'export_data',
+            'referentiel',
+            null,
+            null,
+            ['format' => 'Excel', 'source' => 'Villes', 'count' => $count],
+            'success',
+            'Export Excel — Villes (' . $count . ' enregistrements)',
+            null,
+            'Villes — Excel (' . $count . ')'
+        );
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Villes');
+
+        $headers = ['#', 'Label FR', 'Label AR', 'Label EN', 'Pays', 'Abréviation', 'Classement', 'Couleur fond', 'Couleur texte', 'Défaut', 'Actif'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $headerStyle = $sheet->getStyle('A1:K1');
+        $headerStyle->getFont()->setBold(true);
+        $headerStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('2563EB');
+        $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
+
+        $row = 2;
+        foreach ($villes as $item) {
+            $sheet->fromArray([
+                $item->id,
+                $item->label_fr,
+                $item->label_ar,
+                $item->label_en ?? '',
+                $item->pays->label_fr ?? '—',
+                $item->abbreviation ?? '',
+                $item->classement,
+                $item->bg_color ?? '',
+                $item->text_color ?? '',
+                $item->is_default ? 'Oui' : 'Non',
+                $item->is_active !== false ? 'Oui' : 'Non',
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'K') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'villes_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
+
+        return new StreamedResponse(function () use ($writer): void {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $villes = Ville::with('pays')->orderBy('classement')->get();
+        $count = $villes->count();
+
+        AuditLog::log(
+            'export_data',
+            'referentiel',
+            null,
+            null,
+            ['format' => 'CSV', 'source' => 'Villes', 'count' => $count],
+            'success',
+            'Export CSV — Villes (' . $count . ' enregistrements)',
+            null,
+            'Villes — CSV (' . $count . ')'
+        );
+
+        $filename = 'villes_' . now()->format('Y-m-d_H-i-s') . '.csv';
+
+        return response()->streamDownload(function () use ($villes) {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($handle, ['#', 'Label FR', 'Label AR', 'Label EN', 'Pays', 'Abréviation', 'Classement', 'Couleur fond', 'Couleur texte', 'Défaut', 'Actif']);
+
+            foreach ($villes as $ville) {
+                fputcsv($handle, [
+                    $ville->id,
+                    $ville->label_fr,
+                    $ville->label_ar,
+                    $ville->label_en ?? '',
+                    $ville->pays->label_fr ?? '—',
+                    $ville->abbreviation ?? '',
+                    $ville->classement,
+                    $ville->bg_color ?? '',
+                    $ville->text_color ?? '',
+                    $ville->is_default ? 'Oui' : 'Non',
+                    $ville->is_active !== false ? 'Oui' : 'Non',
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+        ]);
     }
 }

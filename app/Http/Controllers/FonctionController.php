@@ -4,8 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\Fonction;
+use App\Services\FonctionExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class FonctionController extends Controller
 {
@@ -112,5 +118,147 @@ class FonctionController extends Controller
         AuditLog::auditReorder(Fonction::class, $request->items, 'classement');
 
         return response()->json(['message' => 'Ordre mis à jour.']);
+    }
+
+    public function exportPdf(Request $request, FonctionExportService $exportService): Response
+    {
+        $language = $request->query('lang', 'fr');
+        $fonctions = Fonction::orderBy('classement')->get();
+
+        $titles = [
+            'ar' => 'قائمة الوظائف',
+            'en' => 'Functions List',
+            'fr' => 'Liste des Fonctions',
+        ];
+        $title = $titles[$language] ?? $titles['fr'];
+
+        $timestamp = now()->format('Y-m-d_H-i-s');
+        $filename = "fonctions_{$timestamp}.pdf";
+
+        $count = $fonctions->count();
+        AuditLog::log(
+            'export_data',
+            'referentiel',
+            null,
+            null,
+            ['format' => 'PDF', 'source' => 'Fonctions', 'count' => $count],
+            'success',
+            'Export PDF — Fonctions (' . $count . ' enregistrements)',
+            null,
+            'Fonctions — PDF (' . $count . ')'
+        );
+
+        $pdf = $exportService->generatePdf($fonctions, $language, $title, $filename);
+
+        return response($pdf)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+    }
+
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        $fonctions = Fonction::orderBy('classement')->get();
+        $count = $fonctions->count();
+
+        AuditLog::log(
+            'export_data',
+            'referentiel',
+            null,
+            null,
+            ['format' => 'Excel', 'source' => 'Fonctions', 'count' => $count],
+            'success',
+            'Export Excel — Fonctions (' . $count . ' enregistrements)',
+            null,
+            'Fonctions — Excel (' . $count . ')'
+        );
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Fonctions');
+
+        $headers = ['#', 'Code', 'Label FR', 'Label AR', 'Label EN', 'Classement', 'Couleur fond', 'Couleur texte', 'Défaut', 'Actif'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $headerStyle = $sheet->getStyle('A1:J1');
+        $headerStyle->getFont()->setBold(true);
+        $headerStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('2563EB');
+        $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
+
+        $row = 2;
+        foreach ($fonctions as $item) {
+            $sheet->fromArray([
+                $item->id,
+                $item->code ?? '',
+                $item->label_fr,
+                $item->label_ar,
+                $item->label_en ?? '',
+                $item->classement,
+                $item->bg_color ?? '',
+                $item->text_color ?? '',
+                $item->is_default ? 'Oui' : 'Non',
+                $item->is_active !== false ? 'Oui' : 'Non',
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'J') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'fonctions_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
+
+        return new StreamedResponse(function () use ($writer): void {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $fonctions = Fonction::orderBy('classement')->get();
+        $count = $fonctions->count();
+
+        AuditLog::log(
+            'export_data',
+            'referentiel',
+            null,
+            null,
+            ['format' => 'CSV', 'source' => 'Fonctions', 'count' => $count],
+            'success',
+            'Export CSV — Fonctions (' . $count . ' enregistrements)',
+            null,
+            'Fonctions — CSV (' . $count . ')'
+        );
+
+        $filename = 'fonctions_' . now()->format('Y-m-d_H-i-s') . '.csv';
+
+        return response()->streamDownload(function () use ($fonctions) {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($handle, ['#', 'Code', 'Label FR', 'Label AR', 'Label EN', 'Classement', 'Couleur fond', 'Couleur texte', 'Défaut', 'Actif']);
+
+            foreach ($fonctions as $fonction) {
+                fputcsv($handle, [
+                    $fonction->id,
+                    $fonction->code ?? '',
+                    $fonction->label_fr,
+                    $fonction->label_ar,
+                    $fonction->label_en ?? '',
+                    $fonction->classement,
+                    $fonction->bg_color ?? '',
+                    $fonction->text_color ?? '',
+                    $fonction->is_default ? 'Oui' : 'Non',
+                    $fonction->is_active !== false ? 'Oui' : 'Non',
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+        ]);
     }
 }
