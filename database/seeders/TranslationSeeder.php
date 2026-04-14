@@ -386,6 +386,56 @@ class TranslationSeeder extends Seeder
             ['code' => 'clientSectionAddress', 'libelle_fr' => 'Adresse', 'libelle_ar' => 'العنوان', 'libelle_en' => 'Address'],
             ['code' => 'clientSectionFiscal', 'libelle_fr' => 'Informations fiscales & juridiques', 'libelle_ar' => 'معلومات ضريبية وقانونية', 'libelle_en' => 'Fiscal & legal information'],
             ['code' => 'clientSectionOptions', 'libelle_fr' => 'Options', 'libelle_ar' => 'خيارات', 'libelle_en' => 'Options'],
+
+            // ── Clés d'export (colonnes et valeurs multilingues) ───────────────────
+            // En-têtes colonnes — Personnel
+            ['code' => 'export.user.matricule',    'libelle_fr' => 'Matricule',      'libelle_ar' => 'الرقم المرجعي',          'libelle_en' => 'Reference'],
+            ['code' => 'export.user.full_name_fr', 'libelle_fr' => 'Nom complet',    'libelle_ar' => 'الاسم الكامل',            'libelle_en' => 'Full name'],
+            ['code' => 'export.user.full_name_ar', 'libelle_fr' => 'Nom arabe',      'libelle_ar' => 'الاسم بالعربية',          'libelle_en' => 'Arabic name'],
+            ['code' => 'export.user.login',        'libelle_fr' => 'Login',          'libelle_ar' => 'اسم المستخدم',            'libelle_en' => 'Login'],
+            ['code' => 'export.user.roles',        'libelle_fr' => 'Rôles',          'libelle_ar' => 'الأدوار',                 'libelle_en' => 'Roles'],
+            ['code' => 'export.user.departement',  'libelle_fr' => 'Département',    'libelle_ar' => 'القسم',                   'libelle_en' => 'Department'],
+            ['code' => 'export.user.fonction',     'libelle_fr' => 'Fonction',       'libelle_ar' => 'الوظيفة',                 'libelle_en' => 'Function'],
+            ['code' => 'export.user.langue',       'libelle_fr' => 'Langue',         'libelle_ar' => 'اللغة',                   'libelle_en' => 'Language'],
+            ['code' => 'export.user.email',        'libelle_fr' => 'Email',          'libelle_ar' => 'البريد الإلكتروني',       'libelle_en' => 'Email'],
+            ['code' => 'export.user.telephone',    'libelle_fr' => 'Téléphone',      'libelle_ar' => 'الهاتف',                  'libelle_en' => 'Phone'],
+            ['code' => 'export.user.cin',          'libelle_fr' => 'CIN',            'libelle_ar' => 'رقم البطاقة',             'libelle_en' => 'ID card'],
+            ['code' => 'export.user.date_entree',  'libelle_fr' => "Date d'entrée",  'libelle_ar' => 'تاريخ الدخول',            'libelle_en' => 'Start date'],
+            ['code' => 'export.user.active',       'libelle_fr' => 'Actif',          'libelle_ar' => 'نشط',                     'libelle_en' => 'Active'],
+            ['code' => 'export.user.sheet_title',  'libelle_fr' => 'Personnel',      'libelle_ar' => 'الموظفون',                'libelle_en' => 'Staff'],
+            // Valeurs de langue
+            ['code' => 'export.user.langue_fr',    'libelle_fr' => 'Français',       'libelle_ar' => 'فرنسية',                  'libelle_en' => 'French'],
+            ['code' => 'export.user.langue_ar',    'libelle_fr' => 'Arabe',          'libelle_ar' => 'عربية',                   'libelle_en' => 'Arabic'],
+            ['code' => 'export.user.langue_en',    'libelle_fr' => 'Anglais',        'libelle_ar' => 'إنجليزية',                'libelle_en' => 'English'],
+            // Valeurs booléennes génériques
+            ['code' => 'export.common.yes',        'libelle_fr' => 'Oui',            'libelle_ar' => 'نعم',                     'libelle_en' => 'Yes'],
+            ['code' => 'export.common.no',         'libelle_fr' => 'Non',            'libelle_ar' => 'لا',                      'libelle_en' => 'No'],
+            // Colonnes communes à tous les référentiels
+            ['code' => 'export.common.order',       'libelle_fr' => 'Ordre',          'libelle_ar' => 'الترتيب',                 'libelle_en' => 'Order'],
+            ['code' => 'export.common.bg_color',    'libelle_fr' => 'Couleur fond',   'libelle_ar' => 'لون الخلفية',             'libelle_en' => 'Background'],
+            ['code' => 'export.common.text_color',  'libelle_fr' => 'Couleur texte',  'libelle_ar' => 'لون النص',                'libelle_en' => 'Text color'],
+            ['code' => 'export.common.default',     'libelle_fr' => 'Défaut',         'libelle_ar' => 'افتراضي',                 'libelle_en' => 'Default'],
+            ['code' => 'export.common.abbreviation','libelle_fr' => 'Abréviation',    'libelle_ar' => 'الاختصار',                'libelle_en' => 'Abbr.'],
+            // Titres de feuilles / PDFs par entité
+            ['code' => 'export.user.pdf_title',     'libelle_fr' => 'Liste du Personnel',  'libelle_ar' => 'قائمة الموظفين',    'libelle_en' => 'Personnel List'],
+            ['code' => 'export.pays.pdf_title',     'libelle_fr' => 'Pays',                'libelle_ar' => 'الدول',             'libelle_en' => 'Countries'],
+            ['code' => 'export.villes.pdf_title',   'libelle_fr' => 'Villes',              'libelle_ar' => 'المدن',             'libelle_en' => 'Cities'],
+            ['code' => 'export.departement.pdf_title','libelle_fr' => 'Départements',      'libelle_ar' => 'الأقسام',           'libelle_en' => 'Departments'],
+            ['code' => 'export.fonction.pdf_title', 'libelle_fr' => 'Fonctions',           'libelle_ar' => 'الوظائف',           'libelle_en' => 'Functions'],
+            ['code' => 'export.grade.pdf_title',    'libelle_fr' => 'Grades',              'libelle_ar' => 'الدرجات',           'libelle_en' => 'Grades'],
+            ['code' => 'export.groupe.pdf_title',   'libelle_fr' => 'Groupes',             'libelle_ar' => 'المجموعات',         'libelle_en' => 'Groups'],
+            // En-têtes colonnes spécifiques
+            ['code' => 'export.villes.label',       'libelle_fr' => 'Ville',          'libelle_ar' => 'المدينة',                'libelle_en' => 'City'],
+            ['code' => 'export.departement.label',  'libelle_fr' => 'Département',    'libelle_ar' => 'القسم',                  'libelle_en' => 'Department'],
+            ['code' => 'export.fonction.label',     'libelle_fr' => 'Fonction',       'libelle_ar' => 'الوظيفة',                'libelle_en' => 'Function'],
+            ['code' => 'export.grade.label',        'libelle_fr' => 'Grade',          'libelle_ar' => 'الدرجة',                 'libelle_en' => 'Grade'],
+            ['code' => 'export.groupe.label',       'libelle_fr' => 'Groupe',         'libelle_ar' => 'المجموعة',               'libelle_en' => 'Group'],
+            // En-têtes colonnes — Pays
+            ['code' => 'export.pays.code',         'libelle_fr' => 'Code',           'libelle_ar' => 'الرمز',                   'libelle_en' => 'Code'],
+            ['code' => 'export.pays.label_fr',     'libelle_fr' => 'Libellé (FR)',   'libelle_ar' => 'التسمية (FR)',            'libelle_en' => 'Label (FR)'],
+            ['code' => 'export.pays.label_ar',     'libelle_fr' => 'Libellé (AR)',   'libelle_ar' => 'التسمية (AR)',            'libelle_en' => 'Label (AR)'],
+            ['code' => 'export.pays.label_en',     'libelle_fr' => 'Libellé (EN)',   'libelle_ar' => 'التسمية (EN)',            'libelle_en' => 'Label (EN)'],
+            ['code' => 'export.pays.active',       'libelle_fr' => 'Actif',          'libelle_ar' => 'نشط',                     'libelle_en' => 'Active'],
         ];
 
         foreach ($translations as $translation) {

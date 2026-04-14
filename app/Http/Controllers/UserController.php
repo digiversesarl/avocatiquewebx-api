@@ -19,10 +19,13 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\TranslationService;
 use App\Services\UserExportService;
 
 class UserController extends Controller
 {
+    public function __construct(private readonly TranslationService $translations) {}
+
     /**
      * GET /api/users
      *
@@ -58,15 +61,20 @@ class UserController extends Controller
             'Personnel — Excel (' . $users->count() . ')'
         );
 
+        $locale  = $request->get('language', 'fr');
+        $labels  = $this->translations->many([
+            'export.user.matricule', 'export.user.full_name_fr', 'export.user.full_name_ar',
+            'export.user.login', 'export.user.roles', 'export.user.departement',
+            'export.user.fonction', 'export.user.langue', 'export.user.email',
+            'export.user.telephone', 'export.user.cin', 'export.user.date_entree',
+            'export.user.active',
+        ], $locale);
+
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Personnel');
+        $sheet->setTitle($this->translations->get('export.user.sheet_title', $locale, 'Personnel'));
 
-        $headers = [
-            'Matricule', 'Nom complet', 'Nom arabe', 'Login', 'Rôles',
-            'Département', 'Fonction', 'Langue', 'Email', 'Téléphone',
-            'CIN', "Date d'entrée", 'Actif',
-        ];
+        $headers = array_values($labels);
         $sheet->fromArray($headers, null, 'A1');
 
         $headerStyle = $sheet->getStyle('A1:M1');
@@ -86,12 +94,14 @@ class UserController extends Controller
                 $u->roles->pluck('name')->implode(', '),
                 $u->departement,
                 $u->fonction,
-                ($u->langue === 'fr' ? 'Français' : ($u->langue === 'en' ? 'English' : 'Arabe')),
+                $this->translations->get('export.user.langue_' . $u->langue, $locale, $u->langue),
                 $u->email,
                 $u->telephone,
                 $u->cin,
                 $u->date_entree ? substr($u->date_entree, 0, 10) : '',
-                $u->active ? 'Oui' : 'Non',
+                $u->active
+                    ? $this->translations->get('export.common.yes', $locale, 'Oui')
+                    : $this->translations->get('export.common.no', $locale, 'Non'),
             ], null, 'A' . $row);
             $row++;
         }
@@ -166,19 +176,26 @@ class UserController extends Controller
             'Personnel — CSV (' . $users->count() . ')'
         );
 
+        $locale    = $request->get('language', 'fr');
         $timestamp = now()->format('Y-m-d_H-i-s');
         $filename  = "personnel_{$timestamp}.csv";
 
-        $headers = [
-            'Matricule', 'Nom complet', 'Nom arabe', 'Login', 'R\u00f4les',
-            'D\u00e9partement', 'Fonction', 'Langue', 'Email', 'T\u00e9l\u00e9phone',
-            'CIN', "Date d'entr\u00e9e", 'Actif',
-        ];
+        $labels  = $this->translations->many([
+            'export.user.matricule', 'export.user.full_name_fr', 'export.user.full_name_ar',
+            'export.user.login', 'export.user.roles', 'export.user.departement',
+            'export.user.fonction', 'export.user.langue', 'export.user.email',
+            'export.user.telephone', 'export.user.cin', 'export.user.date_entree',
+            'export.user.active',
+        ], $locale);
+        $csvHeaders = array_values($labels);
 
-        return new StreamedResponse(function () use ($users, $headers): void {
+        $yesLabel = $this->translations->get('export.common.yes', $locale, 'Oui');
+        $noLabel  = $this->translations->get('export.common.no',  $locale, 'Non');
+
+        return new StreamedResponse(function () use ($users, $csvHeaders, $locale, $yesLabel, $noLabel): void {
             $out = fopen('php://output', 'w');
             fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
-            fputcsv($out, $headers, ';');
+            fputcsv($out, $csvHeaders, ';');
             foreach ($users as $u) {
                 fputcsv($out, [
                     $u->matricule,
@@ -188,12 +205,12 @@ class UserController extends Controller
                     $u->roles->pluck('name')->implode(', '),
                     $u->departement,
                     $u->fonction,
-                    ($u->langue === 'fr' ? 'Fran\u00e7ais' : ($u->langue === 'en' ? 'English' : 'Arabe')),
+                    $this->translations->get('export.user.langue_' . $u->langue, $locale, $u->langue),
                     $u->email,
                     $u->telephone,
                     $u->cin,
                     $u->date_entree ? substr($u->date_entree, 0, 10) : '',
-                    $u->active ? 'Oui' : 'Non',
+                    $u->active ? $yesLabel : $noLabel,
                 ], ';');
             }
             fclose($out);

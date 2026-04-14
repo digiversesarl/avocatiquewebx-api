@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Translation;
+use App\Services\TranslationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TranslationController extends Controller
 {
+    public function __construct(private readonly TranslationService $translations) {}
     /**
      * GET /api/translations
      *
@@ -55,6 +57,8 @@ class TranslationController extends Controller
 
         $translation = Translation::create($request->all());
 
+        $this->translations->invalidate(); // invalide le cache pour toutes les locales
+
         return response()->json($translation, 201);
     }
 
@@ -80,6 +84,8 @@ class TranslationController extends Controller
 
         $translation->update($request->all());
 
+        $this->translations->invalidate(); // invalide le cache pour toutes les locales
+
         return response()->json($translation);
     }
 
@@ -89,6 +95,8 @@ class TranslationController extends Controller
     public function destroy(Translation $translation): JsonResponse
     {
         $translation->delete();
+
+        $this->translations->invalidate(); // invalide le cache pour toutes les locales
 
         return response()->json(['message' => 'Traduction supprimée.']);
     }

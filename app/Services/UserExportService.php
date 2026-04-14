@@ -6,18 +6,17 @@ use Illuminate\Support\Collection;
 
 class UserExportService extends BasePdfExportService
 {
+    public function __construct(private readonly TranslationService $t)
+    {
+        parent::__construct();
+    }
+
     /**
      * Générer un PDF pour l'export du personnel
      */
     public function generatePdf(Collection $users, string $language = 'fr', string $filename = 'personnel.pdf'): string
     {
-        if ($language === 'en') {
-            $title = 'Personnel List';
-        } elseif ($language === 'ar') {
-            $title = 'قائمة الموظفين';
-        } else {
-            $title = 'Liste du Personnel';
-        }
+        $title = $this->t->get('export.user.pdf_title', $language, 'Liste du Personnel');
 
         $html = $this->buildUsersHtml($users, $language, $title);
         return $this->generate($html, ['filename' => $filename]);
@@ -25,19 +24,25 @@ class UserExportService extends BasePdfExportService
 
     private function buildUsersHtml(Collection $users, string $language, string $title): string
     {
+        $lbl = $this->t->many([
+            'export.user.matricule', 'export.user.full_name_fr', 'export.user.login',
+            'export.user.roles', 'export.user.departement', 'export.user.fonction',
+            'export.user.langue', 'export.user.email', 'export.user.active',
+        ], $language);
+
         $headerLabels = [
-            ['fr' => 'Matricule',   'en' => 'ID',         'ar' => 'المعرف',        'width' => '7%'],
-            ['fr' => 'Nom complet', 'en' => 'Full name',  'ar' => 'الاسم الكامل',  'width' => ''],
-            ['fr' => 'Login',       'en' => 'Login',      'ar' => 'الدخول',        'width' => '10%'],
-            ['fr' => 'Rôles',       'en' => 'Roles',      'ar' => 'الأدوار',       'width' => '10%'],
-            ['fr' => 'Département', 'en' => 'Department', 'ar' => 'القسم',         'width' => '12%'],
-            ['fr' => 'Fonction',    'en' => 'Function',   'ar' => 'الوظيفة',       'width' => '12%'],
-            ['fr' => 'Langue',      'en' => 'Language',   'ar' => 'اللغة',         'width' => '7%'],
-            ['fr' => 'Email',       'en' => 'Email',      'ar' => 'البريد',        'width' => ''],
-            ['fr' => 'Actif',       'en' => 'Active',     'ar' => 'نشط',           'width' => '6%'],
+            ['label' => $lbl['export.user.matricule'],    'width' => '7%'],
+            ['label' => $lbl['export.user.full_name_fr'], 'width' => ''],
+            ['label' => $lbl['export.user.login'],        'width' => '10%'],
+            ['label' => $lbl['export.user.roles'],        'width' => '10%'],
+            ['label' => $lbl['export.user.departement'],  'width' => '12%'],
+            ['label' => $lbl['export.user.fonction'],     'width' => '12%'],
+            ['label' => $lbl['export.user.langue'],       'width' => '7%'],
+            ['label' => $lbl['export.user.email'],        'width' => ''],
+            ['label' => $lbl['export.user.active'],       'width' => '6%'],
         ];
 
-        $headers = $this->getTableHeaders($language, $headerLabels);
+        $headers = $this->getTableHeadersFlat($language, $headerLabels);
         $rows    = $this->buildUsersRows($users, $language);
 
         return $this->buildPdfHtml($title, $language, $headers, $rows);

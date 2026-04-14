@@ -203,6 +203,26 @@ class BasePdfExportService
         return implode('', $cells);
     }
 
+    /**
+     * Variante "flat" : chaque entrée contient déjà le libellé résolu (string),
+     * plus une clé optionnelle 'width'. Utilisé quand les labels viennent du
+     * TranslationService (déjà traduits) plutôt que d'un tableau fr/en/ar.
+     *
+     * @param  array<int, array{label: string, width?: string}>  $headerLabels
+     */
+    protected function getTableHeadersFlat(string $language, array $headerLabels): string
+    {
+        $lang  = $this->resolveLanguage($language);
+        $cells = ['<th style="width: 5%;">' . self::LABELS['number'][$lang] . '</th>'];
+
+        foreach ($headerLabels as $h) {
+            $width   = !empty($h['width']) ? ' style="width: ' . $h['width'] . ';"' : '';
+            $cells[] = '<th' . $width . '>' . htmlspecialchars((string) $h['label']) . '</th>';
+        }
+
+        return implode('', $cells);
+    }
+
     // -------------------------------------------------------------------------
     // Footer natif mPDF
     // -------------------------------------------------------------------------

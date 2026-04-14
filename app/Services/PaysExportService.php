@@ -6,65 +6,62 @@ use Illuminate\Support\Collection;
 
 class PaysExportService extends BasePdfExportService
 {
-    /**
-     * Générer un PDF pour l'export de pays
-     */
-    public function generatePdf(Collection $pays, string $language = 'fr', string $title = 'Pays', string $filename = 'pays.pdf'): string
+    public function __construct(private readonly TranslationService $t)
     {
-        $html = $this->buildPaysHtml($pays, $language, $title);
+        parent::__construct();
+    }
+
+    public function generatePdf(Collection $pays, string $language = 'fr', string $title = '', string $filename = 'pays.pdf'): string
+    {
+        $title = $title ?: $this->t->get('export.pays.pdf_title', $language, 'Pays');
+        $html  = $this->buildPaysHtml($pays, $language, $title);
         return $this->generate($html, ['filename' => $filename]);
     }
 
-    /**
-     * Construire le HTML pour le PDF des pays
-     */
     private function buildPaysHtml(Collection $pays, string $language, string $title): string
     {
-        // Sélectionner la clé de label en fonction de la langue
-        if ($language === 'ar') {
-            $labelKey = 'label_ar';
-        } elseif ($language === 'en') {
-            $labelKey = 'label_en';
-        } else {
-            $labelKey = 'label_fr';
-        }
+        $labelKey = match ($language) {
+            'ar'    => 'label_ar',
+            'en'    => 'label_en',
+            default => 'label_fr',
+        };
 
-        // Définir les en-têtes de colonne
+        $lbl = $this->t->many([
+            'export.pays.label_fr', 'export.pays.code', 'export.common.order',
+            'export.common.bg_color', 'export.common.text_color',
+            'export.common.default', 'export.pays.active',
+        ], $language);
+
         $headerLabels = [
-            ['fr' => 'Pays',         'en' => 'Country', 'ar' => 'الدولة',      'width' => ''],   // auto
-            ['fr' => 'Code',         'en' => 'Code',    'ar' => 'الكود',       'width' => '8%'],  // court
-            ['fr' => 'Ordre',        'en' => 'Order',   'ar' => 'الترتيب',     'width' => '8%'],  // court
-            ['fr' => 'Couleur fond', 'en' => '...',     'ar' => 'اللون الحلقي','width' => ''],   // auto
-            ['fr' => 'Couleur texte','en' => '...',     'ar' => 'لون النص',    'width' => ''],   // auto
-            ['fr' => 'Défaut',       'en' => '...',     'ar' => 'افتراضي',     'width' => '8%'],  // court
-            ['fr' => 'Actif',        'en' => '...',     'ar' => 'نشط',         'width' => '8%'],  // court
+            ['label' => $lbl['export.pays.label_fr'],     'width' => ''],
+            ['label' => $lbl['export.pays.code'],         'width' => '8%'],
+            ['label' => $lbl['export.common.order'],      'width' => '8%'],
+            ['label' => $lbl['export.common.bg_color'],   'width' => ''],
+            ['label' => $lbl['export.common.text_color'], 'width' => ''],
+            ['label' => $lbl['export.common.default'],    'width' => '8%'],
+            ['label' => $lbl['export.pays.active'],       'width' => '8%'],
         ];
 
-        $headers = $this->getTableHeaders($language, $headerLabels);
-        $rows = $this->buildPaysRows($pays, $language, $labelKey);
+        $headers = $this->getTableHeadersFlat($language, $headerLabels);
+        $rows    = $this->buildPaysRows($pays, $language, $labelKey);
 
         return $this->buildPdfHtml($title, $language, $headers, $rows);
     }
 
-    /**
-     * Construire les lignes du tableau des pays
-     */
     private function buildPaysRows(Collection $pays, string $language, string $labelKey): string
     {
         $rows = '';
-        
+
         foreach ($pays as $country) {
-            $isActive = $country->is_active !== false ? '✓' : '';
+            $isActive  = $country->is_active !== false ? '✓' : '';
             $isDefault = $country->is_default ? '✓' : '';
-            $dirStyle = $language === 'ar' ? 'direction: rtl;' : '';
-            
-            // Créer les boîtes colorées pour bg_color et text_color
-            $bgColor = $country->bg_color ?? '#ffffff';
-            $textColor = $country->text_color ?? '#73879c';
-            // Utiliser une cellule HTML simple pour mPDF
-            $bgColorBox = '<span style="background-color: ' . $bgColor . '; padding: 2px 6px; border: 1px solid #999; margin-right: 8px;">&nbsp;&nbsp;&nbsp;</span>' . htmlspecialchars($bgColor);
+            $dirStyle  = $language === 'ar' ? 'direction: rtl;' : '';
+
+            $bgColor      = $country->bg_color ?? '#ffffff';
+            $textColor    = $country->text_color ?? '#73879c';
+            $bgColorBox   = '<span style="background-color: ' . $bgColor . '; padding: 2px 6px; border: 1px solid #999; margin-right: 8px;">&nbsp;&nbsp;&nbsp;</span>' . htmlspecialchars($bgColor);
             $textColorBox = '<span style="background-color: ' . $textColor . '; padding: 2px 6px; border: 1px solid #999; margin-right: 8px;">&nbsp;&nbsp;&nbsp;</span>' . htmlspecialchars($textColor);
-            
+
             $rows .= '<tr>
                     <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' . $country->id . '</td>
                     <td style="padding: 8px; border: 1px solid #ddd; ' . $dirStyle . '">' . htmlspecialchars($country->$labelKey) . '</td>
@@ -76,7 +73,7 @@ class PaysExportService extends BasePdfExportService
                     <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' . $isActive . '</td>
                 </tr>';
         }
-        
+
         return $rows;
     }
 }

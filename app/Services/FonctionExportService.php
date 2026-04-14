@@ -6,47 +6,48 @@ use Illuminate\Support\Collection;
 
 class FonctionExportService extends BasePdfExportService
 {
-    /**
-     * Générer un PDF pour l'export de fonctions
-     */
-    public function generatePdf(Collection $fonctions, string $language = 'fr', string $title = 'Fonctions', string $filename = 'fonctions.pdf'): string
+    public function __construct(private readonly TranslationService $t)
     {
-        $html = $this->buildFonctionsHtml($fonctions, $language, $title);
+        parent::__construct();
+    }
+
+    public function generatePdf(Collection $fonctions, string $language = 'fr', string $title = '', string $filename = 'fonctions.pdf'): string
+    {
+        $title = $title ?: $this->t->get('export.fonction.pdf_title', $language, 'Fonctions');
+        $html  = $this->buildFonctionsHtml($fonctions, $language, $title);
         return $this->generate($html, ['filename' => $filename]);
     }
 
-    /**
-     * Construire le HTML pour le PDF des fonctions
-     */
     private function buildFonctionsHtml(Collection $fonctions, string $language, string $title): string
     {
-        if ($language === 'ar') {
-            $labelKey = 'label_ar';
-        } elseif ($language === 'en') {
-            $labelKey = 'label_en';
-        } else {
-            $labelKey = 'label_fr';
-        }
+        $labelKey = match ($language) {
+            'ar'    => 'label_ar',
+            'en'    => 'label_en',
+            default => 'label_fr',
+        };
+
+        $lbl = $this->t->many([
+            'export.fonction.label', 'export.pays.code', 'export.common.order',
+            'export.common.bg_color', 'export.common.text_color',
+            'export.common.default', 'export.user.active',
+        ], $language);
 
         $headerLabels = [
-            ['fr' => 'Fonction',       'en' => 'Function',   'ar' => 'الوظيفة',      'width' => ''],
-            ['fr' => 'Code',           'en' => 'Code',       'ar' => 'الكود',        'width' => '8%'],
-            ['fr' => 'Ordre',          'en' => 'Order',      'ar' => 'الترتيب',      'width' => '8%'],
-            ['fr' => 'Couleur fond',   'en' => 'Bg Color',   'ar' => 'اللون الخلفي', 'width' => ''],
-            ['fr' => 'Couleur texte',  'en' => 'Text Color', 'ar' => 'لون النص',     'width' => ''],
-            ['fr' => 'Défaut',         'en' => 'Default',    'ar' => 'افتراضي',      'width' => '8%'],
-            ['fr' => 'Actif',          'en' => 'Active',     'ar' => 'نشط',          'width' => '8%'],
+            ['label' => $lbl['export.fonction.label'],     'width' => ''],
+            ['label' => $lbl['export.pays.code'],          'width' => '8%'],
+            ['label' => $lbl['export.common.order'],       'width' => '8%'],
+            ['label' => $lbl['export.common.bg_color'],    'width' => ''],
+            ['label' => $lbl['export.common.text_color'],  'width' => ''],
+            ['label' => $lbl['export.common.default'],     'width' => '8%'],
+            ['label' => $lbl['export.user.active'],        'width' => '8%'],
         ];
 
-        $headers = $this->getTableHeaders($language, $headerLabels);
-        $rows = $this->buildFonctionsRows($fonctions, $language, $labelKey);
+        $headers = $this->getTableHeadersFlat($language, $headerLabels);
+        $rows    = $this->buildFonctionsRows($fonctions, $language, $labelKey);
 
         return $this->buildPdfHtml($title, $language, $headers, $rows);
     }
 
-    /**
-     * Construire les lignes du tableau des fonctions
-     */
     private function buildFonctionsRows(Collection $fonctions, string $language, string $labelKey): string
     {
         $rows = '';
@@ -56,8 +57,8 @@ class FonctionExportService extends BasePdfExportService
             $isDefault = $fonction->is_default ? '✓' : '';
             $dirStyle  = $language === 'ar' ? 'direction: rtl;' : '';
 
-            $bgColor    = $fonction->bg_color ?? '#ffffff';
-            $textColor  = $fonction->text_color ?? '#73879c';
+            $bgColor      = $fonction->bg_color ?? '#ffffff';
+            $textColor    = $fonction->text_color ?? '#73879c';
             $bgColorBox   = '<span style="background-color: ' . $bgColor . '; padding: 2px 6px; border: 1px solid #999; margin-right: 8px;">&nbsp;&nbsp;&nbsp;</span>' . htmlspecialchars($bgColor);
             $textColorBox = '<span style="background-color: ' . $textColor . '; padding: 2px 6px; border: 1px solid #999; margin-right: 8px;">&nbsp;&nbsp;&nbsp;</span>' . htmlspecialchars($textColor);
 
