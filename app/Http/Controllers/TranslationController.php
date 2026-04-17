@@ -53,14 +53,14 @@ class TranslationController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $request->validate([
+        $data = $request->validate([
             'code'        => 'required|string|unique:translations,code',
             'libelle_fr'  => 'required|string',
             'libelle_ar'  => 'required|string',
             'libelle_en'  => 'required|string',
         ]);
 
-        $translation = Translation::create($request->all());
+        $translation = Translation::create($data);
 
         $this->translations->invalidate(); // invalide le cache pour toutes les locales
 
@@ -80,14 +80,14 @@ class TranslationController extends Controller
      */
     public function update(Request $request, Translation $translation): JsonResponse
     {
-        $request->validate([
+        $data = $request->validate([
             'code'        => 'required|string|unique:translations,code,' . $translation->id,
             'libelle_fr'  => 'required|string',
             'libelle_ar'  => 'required|string',
             'libelle_en'  => 'required|string',
         ]);
 
-        $translation->update($request->all());
+        $translation->update($data);
 
         $this->translations->invalidate(); // invalide le cache pour toutes les locales
 

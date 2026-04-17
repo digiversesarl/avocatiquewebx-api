@@ -48,7 +48,6 @@ class UpdateUserRequest extends FormRequest
             'couleur_texte'         => ['sometimes', 'nullable', 'string', 'max:7'],
             'valeur_par_defaut'     => ['sometimes', 'boolean'],
             'tfa_enabled'           => ['sometimes', 'boolean'],
-            'tfa_secret'            => ['sometimes', 'nullable', 'string'],
             'photo'                 => ['sometimes', 'nullable', 'string'], // Accept base64 strings or empty
             'roles'                 => ['sometimes', 'array'],
             'roles.*'               => ['string', 'exists:roles,name'],

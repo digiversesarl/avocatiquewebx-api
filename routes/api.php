@@ -28,15 +28,15 @@ use Illuminate\Support\Facades\Route;
 
 // ── Routes publiques ──────────────────────────────────────────────────────
 Route::prefix('auth')->name('auth.')->group(function (): void {
-    Route::post('login',           [AuthController::class, 'login'])->name('login');
-    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
+    Route::post('login',           [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
+    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password')->name('forgot-password');
 });
 
 // ── Translations (publique : chargement i18n sans pagination)
 Route::get('translations', [TranslationController::class, 'index'])->name('translations.index');
 
 // ── Routes protégées (Sanctum) ────────────────────────────────────────────
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
 
     // Auth
     Route::prefix('auth')->name('auth.')->group(function (): void {

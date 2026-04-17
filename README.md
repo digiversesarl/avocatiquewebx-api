@@ -1,53 +1,96 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AvocatiqueWebX — API Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> API REST Laravel pour la gestion d'un cabinet d'avocats (FR/AR/EN, RTL-aware).
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Laravel 13** · PHP 8.3 · Sanctum (Bearer token) · mPDF
+- Base de données : MySQL (dev/prod), SQLite (tests)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Installation
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Lancement
 
-## Contributing
+```bash
+composer dev          # serveur + queue + pail + vite (tout en un)
+# ou
+php artisan serve     # serveur seul (port 8000)
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Tests
 
-## Code of Conduct
+```bash
+# Tous les tests
+php artisan test
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# Tests de sécurité uniquement (audit)
+php artisan test --filter=SecurityAuditTest
+
+# Tests d'intégration uniquement
+php artisan test --filter="AuthIntegrationTest|UserIntegrationTest|RolePermissionIntegrationTest|MenuItemIntegrationTest|TranslationIntegrationTest|ReferentielIntegrationTest|CabinetConfigIntegrationTest|AuditLogIntegrationTest"
+
+# Un test spécifique
+php artisan test --filter=test_login_rate_limited_after_5_attempts
+```
+
+### Tests de sécurité (`SecurityAuditTest`)
+
+24 tests automatisés couvrant les points d'audit suivants :
+
+| # | Catégorie | Tests | Vérifie |
+|---|-----------|-------|---------|
+| 1-3 | **Security Headers** | 3 | `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy` sur routes publiques, 401 et authentifiées |
+| 4-5 | **Rate Limiting — Login** | 2 | Blocage après 5 tentatives/min + headers `X-RateLimit-Limit` et `Retry-After` |
+| 6 | **Rate Limiting — Forgot Password** | 1 | Blocage après 3 tentatives/min |
+| 7 | **Rate Limiting — API** | 1 | Header `X-RateLimit-Limit: 120` sur requêtes authentifiées |
+| 8-9 | **Password — Pas de double hashing** | 2 | Reset mot de passe → login fonctionne, `Hash::check()` valide en base |
+| 10-13 | **Password — Validation forte** | 4 | Min 8 caractères, lettres requises, chiffres requis, mot de passe fort accepté |
+| 14 | **Sanctum — Expiration tokens** | 1 | `config('sanctum.expiration')` non-null, > 0, ≤ 480 min |
+| 15 | **Mass Assignment — tfa_secret** | 1 | `tfa_secret` ne peut pas être injecté via PUT /users |
+| 16-17 | **Mass Assignment — Translations** | 2 | Champs supplémentaires ignorés sur store et update |
+| 18-19 | **Protection des routes** | 2 | Routes protégées → 401 sans token, route publique → 200 |
+| 20-21 | **Anti-énumération** | 2 | Même message d'erreur pour email inexistant et mauvais mot de passe |
+| 22 | **Compte désactivé** | 1 | Compte `inactive` → 403 |
+| 23 | **RBAC — Permissions** | 1 | Utilisateur sans permission → 403 |
+| 24 | **Logout — Révocation token** | 1 | Token supprimé en base après logout |
+
+### Tests d'intégration (115 tests)
+
+Tests end-to-end pour chaque service/contrôleur de l'API :
+
+| Fichier | Tests | Couverture |
+|---------|-------|------------|
+| `AuthIntegrationTest` | 12 | Login, logout, me, forgot-password, validation, register, compte inactif |
+| `UserIntegrationTest` | 16 | CRUD utilisateurs, toggle-active, password, photo, pièces jointes, reorder, RBAC |
+| `RolePermissionIntegrationTest` | 12 | CRUD rôles, allPermissions, syncPermissions, contrôle d'accès RBAC |
+| `MenuItemIntegrationTest` | 12 | CRUD menu, arbre filtré par rôle, toggle-visibility, reorder, cascade delete |
+| `TranslationIntegrationTest` | 10 | Index public, admin paginé, CRUD, unicité code, contrôle d'accès |
+| `ReferentielIntegrationTest` | 30 | CRUD + toggle + duplicate + reorder pour Pays, Villes, Fonctions, Grades, Départements, Groupes |
+| `CabinetConfigIntegrationTest` | 12 | Config singleton get/update, thèmes couleur CRUD, upload/delete image, règles métier |
+| `AuditLogIntegrationTest` | 11 | Index paginé + filtres/tri, détail, liste utilisateurs, stats, piste d'audit, contrôle d'accès |
+
+### Lancer l'audit de sécurité
+
+```bash
+php artisan test --filter=SecurityAuditTest -v
+```
+
+Résultat attendu : **24 passed (74 assertions)**
+
+## Variables d'environnement clés
+
+| Variable | Description | Défaut |
+|----------|-------------|--------|
+| `SANCTUM_TOKEN_EXPIRATION` | Durée de vie des tokens (minutes) | `480` |
+| `FRONTEND_URL` | URL du frontend (CORS) | — |
+| `SANCTUM_STATEFUL_DOMAINS` | Domaines Sanctum stateful | `localhost,...` |
 
 ## Security Vulnerabilities
 

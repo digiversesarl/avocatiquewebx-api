@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckPermission;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,6 +17,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        /*
+        |------------------------------------------------------------------
+        | Security headers on every response
+        |------------------------------------------------------------------
+        */
+        $middleware->append(SecurityHeaders::class);
+
         /*
         |------------------------------------------------------------------
         | API : Ne jamais rediriger vers une route [login].

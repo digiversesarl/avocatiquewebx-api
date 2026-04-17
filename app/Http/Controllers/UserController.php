@@ -528,11 +528,11 @@ class UserController extends Controller
     public function updatePassword(Request $request, User $user): JsonResponse
     {
         $request->validate([
-            'password' => 'required|string|min:4',
+            'password' => ['required', 'string', 'min:8', \Illuminate\Validation\Rules\Password::min(8)->letters()->numbers()],
         ]);
 
         $user->update([
-            'password' => bcrypt($request->password),
+            'password' => $request->password,
         ]);
 
         AuditLog::log(

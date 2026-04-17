@@ -41,6 +41,7 @@ class GradeController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'code'       => 'nullable|string|max:20|unique:grades,code',
             'label_fr'   => 'required|string|max:255',
             'label_ar'   => 'required|string|max:255',
             'label_en'   => 'nullable|string|max:255',
@@ -64,6 +65,7 @@ class GradeController extends Controller
     public function update(Request $request, Grade $grade): JsonResponse
     {
         $data = $request->validate([
+            'code'       => 'nullable|string|max:20|unique:grades,code,' . $grade->id,
             'label_fr'   => 'required|string|max:255',
             'label_ar'   => 'required|string|max:255',
             'label_en'   => 'nullable|string|max:255',
