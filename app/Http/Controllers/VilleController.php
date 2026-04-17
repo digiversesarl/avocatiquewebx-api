@@ -98,7 +98,6 @@ class VilleController extends Controller
     {
         $copy = $ville->replicate();
         $copy->label_fr = $ville->label_fr . ' (copie)';
-        $copy->code = null;
         $copy->classement = Ville::max('classement') + 1;
         $copy->save();
 

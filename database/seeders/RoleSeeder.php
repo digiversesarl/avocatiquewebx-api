@@ -42,7 +42,13 @@ class RoleSeeder extends Seeder
         */
 
         $allPerms      = Permission::pluck('id');
-        $nonAdminPerms = Permission::where('module', '!=', 'administration')->pluck('id');
+        $nonAdminPerms = Permission::where('module', '!=', 'admin')->pluck('id');
+        $nonAdminNonRefPerms = Permission::where('module', '!=', 'admin')
+            ->where('module', 'not like', 'ref_%')
+            ->where('module', '!=', 'users')
+            ->where('module', '!=', 'translations')
+            ->where('module', '!=', 'menu')
+            ->pluck('id');
 		
 		
 		// ── Super Admin : TOUT ───────────────────────────────────────────
@@ -56,7 +62,7 @@ class RoleSeeder extends Seeder
 
         // ── Avocat ──────────────────────────────
         $avocat = Role::where('name', 'avocat')->first();
-        $avocat?->permissions()->sync($nonAdminPerms);
+        $avocat?->permissions()->sync($nonAdminNonRefPerms);
 
         // ── Secrétaire ──────────────────────────
         $secretaire = Role::where('name', 'secretaire')->first();

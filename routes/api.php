@@ -48,53 +48,131 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('menu/tree', [MenuItemController::class, 'tree'])->name('menu.tree');
 
     // ── Administration : Référentiels ─────────────────────────────────
-    Route::post('fonctions/reorder', [FonctionController::class, 'reorder']);
-    Route::get('fonctions/export/pdf', [FonctionController::class, 'exportPdf']);
-    Route::get('fonctions/export/csv', [FonctionController::class, 'exportCsv']);
-    Route::get('fonctions/export/excel', [FonctionController::class, 'exportExcel']);
-    Route::apiResource('fonctions', FonctionController::class);
-    Route::patch('fonctions/{fonction}/toggle-active', [FonctionController::class, 'toggleActive']);
-    Route::post('fonctions/{fonction}/duplicate', [FonctionController::class, 'duplicate']);
+    // Fonctions
+    Route::middleware('permission:ref.fonctions.view')->group(function (): void {
+        Route::get('fonctions', [FonctionController::class, 'index']);
+        Route::get('fonctions/{fonction}', [FonctionController::class, 'show']);
+    });
+    Route::middleware('permission:ref.fonctions.export')->group(function (): void {
+        Route::get('fonctions/export/pdf', [FonctionController::class, 'exportPdf']);
+        Route::get('fonctions/export/csv', [FonctionController::class, 'exportCsv']);
+        Route::get('fonctions/export/excel', [FonctionController::class, 'exportExcel']);
+    });
+    Route::middleware('permission:ref.fonctions.create')->group(function (): void {
+        Route::post('fonctions', [FonctionController::class, 'store']);
+        Route::post('fonctions/{fonction}/duplicate', [FonctionController::class, 'duplicate']);
+    });
+    Route::middleware('permission:ref.fonctions.edit')->group(function (): void {
+        Route::put('fonctions/{fonction}', [FonctionController::class, 'update']);
+        Route::patch('fonctions/{fonction}/toggle-active', [FonctionController::class, 'toggleActive']);
+        Route::post('fonctions/reorder', [FonctionController::class, 'reorder']);
+    });
+    Route::middleware('permission:ref.fonctions.delete')->delete('fonctions/{fonction}', [FonctionController::class, 'destroy']);
 
-    Route::post('grades/reorder', [GradeController::class, 'reorder']);
-    Route::get('grades/export/pdf', [GradeController::class, 'exportPdf']);
-    Route::get('grades/export/csv', [GradeController::class, 'exportCsv']);
-    Route::get('grades/export/excel', [GradeController::class, 'exportExcel']);
-    Route::apiResource('grades', GradeController::class);
-    Route::patch('grades/{grade}/toggle-active', [GradeController::class, 'toggleActive']);
-    Route::post('grades/{grade}/duplicate', [GradeController::class, 'duplicate']);
+    // Grades
+    Route::middleware('permission:ref.grades.view')->group(function (): void {
+        Route::get('grades', [GradeController::class, 'index']);
+        Route::get('grades/{grade}', [GradeController::class, 'show']);
+    });
+    Route::middleware('permission:ref.grades.export')->group(function (): void {
+        Route::get('grades/export/pdf', [GradeController::class, 'exportPdf']);
+        Route::get('grades/export/csv', [GradeController::class, 'exportCsv']);
+        Route::get('grades/export/excel', [GradeController::class, 'exportExcel']);
+    });
+    Route::middleware('permission:ref.grades.create')->group(function (): void {
+        Route::post('grades', [GradeController::class, 'store']);
+        Route::post('grades/{grade}/duplicate', [GradeController::class, 'duplicate']);
+    });
+    Route::middleware('permission:ref.grades.edit')->group(function (): void {
+        Route::put('grades/{grade}', [GradeController::class, 'update']);
+        Route::patch('grades/{grade}/toggle-active', [GradeController::class, 'toggleActive']);
+        Route::post('grades/reorder', [GradeController::class, 'reorder']);
+    });
+    Route::middleware('permission:ref.grades.delete')->delete('grades/{grade}', [GradeController::class, 'destroy']);
 
-    Route::post('departements/reorder', [DepartementController::class, 'reorder']);
-    Route::get('departements/export/pdf', [DepartementController::class, 'exportPdf']);
-    Route::get('departements/export/csv', [DepartementController::class, 'exportCsv']);
-    Route::get('departements/export/excel', [DepartementController::class, 'exportExcel']);
-    Route::apiResource('departements', DepartementController::class);
-    Route::patch('departements/{departement}/toggle-active', [DepartementController::class, 'toggleActive']);
-    Route::post('departements/{departement}/duplicate', [DepartementController::class, 'duplicate']);
+    // Départements
+    Route::middleware('permission:ref.departements.view')->group(function (): void {
+        Route::get('departements', [DepartementController::class, 'index']);
+        Route::get('departements/{departement}', [DepartementController::class, 'show']);
+    });
+    Route::middleware('permission:ref.departements.export')->group(function (): void {
+        Route::get('departements/export/pdf', [DepartementController::class, 'exportPdf']);
+        Route::get('departements/export/csv', [DepartementController::class, 'exportCsv']);
+        Route::get('departements/export/excel', [DepartementController::class, 'exportExcel']);
+    });
+    Route::middleware('permission:ref.departements.create')->group(function (): void {
+        Route::post('departements', [DepartementController::class, 'store']);
+        Route::post('departements/{departement}/duplicate', [DepartementController::class, 'duplicate']);
+    });
+    Route::middleware('permission:ref.departements.edit')->group(function (): void {
+        Route::put('departements/{departement}', [DepartementController::class, 'update']);
+        Route::patch('departements/{departement}/toggle-active', [DepartementController::class, 'toggleActive']);
+        Route::post('departements/reorder', [DepartementController::class, 'reorder']);
+    });
+    Route::middleware('permission:ref.departements.delete')->delete('departements/{departement}', [DepartementController::class, 'destroy']);
 
-    Route::post('groupes/reorder', [GroupeController::class, 'reorder']);
-    Route::get('groupes/export/pdf', [GroupeController::class, 'exportPdf']);
-    Route::get('groupes/export/csv', [GroupeController::class, 'exportCsv']);
-    Route::get('groupes/export/excel', [GroupeController::class, 'exportExcel']);
-    Route::apiResource('groupes', GroupeController::class);
-    Route::patch('groupes/{groupe}/toggle-active', [GroupeController::class, 'toggleActive']);
-    Route::post('groupes/{groupe}/duplicate', [GroupeController::class, 'duplicate']);
+    // Groupes
+    Route::middleware('permission:ref.groupes.view')->group(function (): void {
+        Route::get('groupes', [GroupeController::class, 'index']);
+        Route::get('groupes/{groupe}', [GroupeController::class, 'show']);
+    });
+    Route::middleware('permission:ref.groupes.export')->group(function (): void {
+        Route::get('groupes/export/pdf', [GroupeController::class, 'exportPdf']);
+        Route::get('groupes/export/csv', [GroupeController::class, 'exportCsv']);
+        Route::get('groupes/export/excel', [GroupeController::class, 'exportExcel']);
+    });
+    Route::middleware('permission:ref.groupes.create')->group(function (): void {
+        Route::post('groupes', [GroupeController::class, 'store']);
+        Route::post('groupes/{groupe}/duplicate', [GroupeController::class, 'duplicate']);
+    });
+    Route::middleware('permission:ref.groupes.edit')->group(function (): void {
+        Route::put('groupes/{groupe}', [GroupeController::class, 'update']);
+        Route::patch('groupes/{groupe}/toggle-active', [GroupeController::class, 'toggleActive']);
+        Route::post('groupes/reorder', [GroupeController::class, 'reorder']);
+    });
+    Route::middleware('permission:ref.groupes.delete')->delete('groupes/{groupe}', [GroupeController::class, 'destroy']);
 
-    Route::post('pays/reorder', [PaysController::class, 'reorder']);
-    Route::get('pays/export/pdf', [PaysController::class, 'exportPdf']);
-    Route::get('pays/export/csv', [PaysController::class, 'exportCsv']);
-    Route::get('pays/export/excel', [PaysController::class, 'exportExcel']);
-    Route::apiResource('pays', PaysController::class)->parameters(['pays' => 'pays']);
-    Route::patch('pays/{pays}/toggle-active', [PaysController::class, 'toggleActive']);
-    Route::post('pays/{pays}/duplicate', [PaysController::class, 'duplicate']);
+    // Pays
+    Route::middleware('permission:ref.pays.view')->group(function (): void {
+        Route::get('pays', [PaysController::class, 'index']);
+        Route::get('pays/{pays}', [PaysController::class, 'show']);
+    });
+    Route::middleware('permission:ref.pays.export')->group(function (): void {
+        Route::get('pays/export/pdf', [PaysController::class, 'exportPdf']);
+        Route::get('pays/export/csv', [PaysController::class, 'exportCsv']);
+        Route::get('pays/export/excel', [PaysController::class, 'exportExcel']);
+    });
+    Route::middleware('permission:ref.pays.create')->group(function (): void {
+        Route::post('pays', [PaysController::class, 'store']);
+        Route::post('pays/{pays}/duplicate', [PaysController::class, 'duplicate']);
+    });
+    Route::middleware('permission:ref.pays.edit')->group(function (): void {
+        Route::put('pays/{pays}', [PaysController::class, 'update']);
+        Route::patch('pays/{pays}/toggle-active', [PaysController::class, 'toggleActive']);
+        Route::post('pays/reorder', [PaysController::class, 'reorder']);
+    });
+    Route::middleware('permission:ref.pays.delete')->delete('pays/{pays}', [PaysController::class, 'destroy']);
 
-    Route::post('villes/reorder', [VilleController::class, 'reorder']);
-    Route::get('villes/export/pdf', [VilleController::class, 'exportPdf']);
-    Route::get('villes/export/csv', [VilleController::class, 'exportCsv']);
-    Route::get('villes/export/excel', [VilleController::class, 'exportExcel']);
-    Route::apiResource('villes', VilleController::class);
-    Route::patch('villes/{ville}/toggle-active', [VilleController::class, 'toggleActive']);
-    Route::post('villes/{ville}/duplicate', [VilleController::class, 'duplicate']);
+    // Villes
+    Route::middleware('permission:ref.villes.view')->group(function (): void {
+        Route::get('villes', [VilleController::class, 'index']);
+        Route::get('villes/{ville}', [VilleController::class, 'show']);
+    });
+    Route::middleware('permission:ref.villes.export')->group(function (): void {
+        Route::get('villes/export/pdf', [VilleController::class, 'exportPdf']);
+        Route::get('villes/export/csv', [VilleController::class, 'exportCsv']);
+        Route::get('villes/export/excel', [VilleController::class, 'exportExcel']);
+    });
+    Route::middleware('permission:ref.villes.create')->group(function (): void {
+        Route::post('villes', [VilleController::class, 'store']);
+        Route::post('villes/{ville}/duplicate', [VilleController::class, 'duplicate']);
+    });
+    Route::middleware('permission:ref.villes.edit')->group(function (): void {
+        Route::put('villes/{ville}', [VilleController::class, 'update']);
+        Route::patch('villes/{ville}/toggle-active', [VilleController::class, 'toggleActive']);
+        Route::post('villes/reorder', [VilleController::class, 'reorder']);
+    });
+    Route::middleware('permission:ref.villes.delete')->delete('villes/{ville}', [VilleController::class, 'destroy']);
 
     // ── Administration : Utilisateurs ─────────────────────────────────
     Route::middleware('permission:admin.users')
@@ -158,7 +236,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         });
 
     // ── Configuration du Cabinet ──────────────────────────────────
-    Route::prefix('cabinet')
+    Route::middleware('permission:admin.cabinet')
+        ->prefix('cabinet')
         ->name('cabinet.')
         ->group(function (): void {
             Route::get('config', [CabinetController::class, 'getConfig'])->name('config.show');

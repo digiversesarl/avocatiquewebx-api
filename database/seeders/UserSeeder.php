@@ -40,7 +40,7 @@ class UserSeeder extends Seeder
         $personnel = [
             [
                 'email'               => 'admin@avocatiquewebx.ma',
-                'password'            => Hash::make('admin123'),
+                'password'            => Hash::make('Xk9#mLp2$vQr@2026'),
                 'status'              => 'active',
                 'matricule'           => 'CLT0001',
                 'full_name_fr'        => 'Admin',
@@ -72,7 +72,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'karim@avocatiquewebx.ma',
-                'password'            => Hash::make('avocat123'),
+                'password'            => Hash::make('Tn4&jWz8!bRf@2026'),
                 'status'              => 'active',
                 'matricule'           => 'CLT0002',
                 'full_name_fr'        => 'Me. Karim Benali',
@@ -104,7 +104,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'sara@avocatiquewebx.ma',
-                'password'            => Hash::make('sara1234'),
+                'password'            => Hash::make('Hv7!cNe3#pYm@2026'),
                 'status'              => 'active',
                 'matricule'           => 'CLT0003',
                 'full_name_fr'        => 'Sara Bouazza',
@@ -136,7 +136,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'youssef@avocatiquewebx.ma',
-                'password'            => Hash::make('youssef1234'),
+                'password'            => Hash::make('Qw5$dKa9!gLx@2026'),
                 'status'              => 'inactive',
                 'matricule'           => 'CLT0004',
                 'full_name_fr'        => 'Youssef Moussaoui',
@@ -168,7 +168,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'fatima@avocatiquewebx.ma',
-                'password'            => Hash::make('fatima1234'),
+                'password'            => Hash::make('Bm6#rJt1$wPn@2026'),
                 'status'              => 'active',
                 'matricule'           => 'CLT0005',
                 'full_name_fr'        => 'Me. Fatima Zahri',
@@ -200,7 +200,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'omar@avocatiquewebx.ma',
-                'password'            => Hash::make('omar1234'),
+                'password'            => Hash::make('Zf8!sXq4#eCv@2026'),
                 'status'              => 'active',
                 'matricule'           => 'CLT0006',
                 'full_name_fr'        => 'Omar El Fassi',
@@ -232,7 +232,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'amina@avocatiquewebx.ma',
-                'password'            => Hash::make('amina1234'),
+                'password'            => Hash::make('Gy3$nFh7!kMb@2026'),
                 'status'              => 'active',
                 'matricule'           => 'CLT0007',
                 'full_name_fr'        => 'Amina Rifi',
@@ -264,7 +264,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'mehdi@avocatiquewebx.ma',
-                'password'            => Hash::make('mehdi1234'),
+                'password'            => Hash::make('Lp2#vTk6$aWj@2026'),
                 'status'              => 'active',
                 'matricule'           => 'CLT0008',
                 'full_name_fr'        => 'Me. Mehdi Tazi',
@@ -296,7 +296,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'hanane@avocatiquewebx.ma',
-                'password'            => Hash::make('hanane1234'),
+                'password'            => Hash::make('Dc9!mRy5#hQe@2026'),
                 'status'              => 'active',
                 'matricule'           => 'CLT0009',
                 'full_name_fr'        => 'Hanane Idrissi',
@@ -328,7 +328,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'rachid@avocatiquewebx.ma',
-                'password'            => Hash::make('rachid1234'),
+                'password'            => Hash::make('Ws1$bNg8!fXr@2026'),
                 'status'              => 'active',
                 'matricule'           => 'CLT0010',
                 'full_name_fr'        => 'Me. Rachid Alaoui',
@@ -360,7 +360,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'               => 'nadia@avocatiquewebx.ma',
-                'password'            => Hash::make('nadia1234'),
+                'password'            => Hash::make('Jk4#ePz0!tCn@2026'),
                 'status'              => 'inactive',
                 'matricule'           => 'CLT0011',
                 'full_name_fr'        => 'Nadia Chraibi',
