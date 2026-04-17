@@ -17,12 +17,12 @@ class RoleSeeder extends Seeder
         */
 
         $roles = [
-            ['id' => 1, 'name' => 'superadmin', 'level' => 200],
-            ['id' => 2, 'name' => 'admin',      'level' => 100],
-            ['id' => 3, 'name' => 'avocat',     'level' => 60],
-            ['id' => 4, 'name' => 'secretaire', 'level' => 40],
-            ['id' => 5, 'name' => 'stagiaire',  'level' => 20],
-            ['id' => 6, 'name' => 'agent',      'level' => 10],
+            ['id' => 1, 'name' => 'superadmin', 'level' => 200, 'color' => '#ef4444'],
+            ['id' => 2, 'name' => 'admin',      'level' => 199, 'color' => '#3b82f6'],
+            ['id' => 3, 'name' => 'avocat',     'level' => 198, 'color' => '#f59e0b'],
+            ['id' => 4, 'name' => 'secretaire', 'level' => 197, 'color' => '#22c55e'],
+            ['id' => 5, 'name' => 'stagiaire',  'level' => 196, 'color' => '#a855f7'],
+            ['id' => 6, 'name' => 'agent',      'level' => 195, 'color' => '#64748b'],
         ];
 
         foreach ($roles as $role) {
@@ -31,6 +31,7 @@ class RoleSeeder extends Seeder
                 [
                     'name'  => $role['name'],
                     'level' => $role['level'],
+                    'color' => $role['color'],
                 ]
             );
         }

@@ -32,7 +32,7 @@ Route::prefix('auth')->name('auth.')->group(function (): void {
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
 });
 
-// ── Translations (publique pour charger dans l'app)
+// ── Translations (publique : chargement i18n sans pagination)
 Route::get('translations', [TranslationController::class, 'index'])->name('translations.index');
 
 // ── Routes protégées (Sanctum) ────────────────────────────────────────────
@@ -46,6 +46,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     // Menu — arbre filtré par les rôles de l'utilisateur connecté (tous les users auth)
     Route::get('menu/tree', [MenuItemController::class, 'tree'])->name('menu.tree');
+
+    // ── Translations paginées (protégée, pour la page admin) ──────────
+    Route::get('translations/paginated', [TranslationController::class, 'paginated'])->name('translations.paginated');
 
     // ── Administration : Référentiels ─────────────────────────────────
     // Fonctions
@@ -203,6 +206,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
                 Route::post('/',       [RoleController::class, 'store'])->name('store');
                 Route::get('/{role}',  [RoleController::class, 'show'])->name('show');
                 Route::put('/{role}',  [RoleController::class, 'update'])->name('update');
+                Route::put('/{role}/permissions', [RoleController::class, 'syncPermissions'])->name('permissions.sync');
                 Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy');
             });
 

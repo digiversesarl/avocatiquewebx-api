@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class RoleController extends Controller
 {
@@ -28,7 +29,7 @@ class RoleController extends Controller
      */
     public function store(StoreRoleRequest $request): JsonResponse
     {
-        $role = Role::create($request->only(['name', 'display_name', 'description']));
+        $role = Role::create($request->only(['name', 'display_name', 'description', 'level', 'color']));
 
         if ($request->filled('permissions')) {
             AuditLog::auditSync(
@@ -56,7 +57,7 @@ class RoleController extends Controller
      */
     public function update(UpdateRoleRequest $request, Role $role): JsonResponse
     {
-        $role->update($request->only(['display_name', 'description']));
+        $role->update($request->only(['display_name', 'description', 'level', 'color']));
 
         if ($request->has('permissions')) {
             AuditLog::auditSync(
@@ -101,5 +102,46 @@ class RoleController extends Controller
             ->groupBy('module');
 
         return response()->json($grouped);
+    }
+
+    /**
+     * PUT /api/roles/{role}/permissions
+     *
+     * Ajoute/retire des permissions par ID.
+     * Body: { add: [id,...], remove: [id,...] }
+     */
+    public function syncPermissions(Request $request, Role $role): JsonResponse
+    {
+        $request->validate([
+            'add'    => 'present|array',
+            'add.*'  => 'integer|exists:permissions,id',
+            'remove'    => 'present|array',
+            'remove.*'  => 'integer|exists:permissions,id',
+        ]);
+
+        $add    = $request->input('add', []);
+        $remove = $request->input('remove', []);
+
+        if (!empty($add)) {
+            $role->permissions()->syncWithoutDetaching($add);
+        }
+
+        if (!empty($remove)) {
+            $role->permissions()->detach($remove);
+        }
+
+        if (!empty($add) || !empty($remove)) {
+            AuditLog::log(
+                'role_granted',
+                'roles',
+                $role,
+                !empty($remove) ? ['permissions_removed' => $remove] : null,
+                !empty($add)    ? ['permissions_added'   => $add]   : null,
+                'success',
+                "Role {$role->name} — permissions updated"
+            );
+        }
+
+        return response()->json($role->load('permissions:id,name,module,action'));
     }
 }

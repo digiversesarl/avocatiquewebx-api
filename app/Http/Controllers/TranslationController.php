@@ -15,13 +15,18 @@ class TranslationController extends Controller
      *
      * Liste paginée des traductions avec recherche et tri.
      */
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
-        // Requête publique (sans auth) : retourner toutes les traductions d'un coup
-        if (!$request->has('per_page') && !$request->has('page')) {
-            return response()->json(Translation::orderBy('code')->get());
-        }
+        return response()->json(Translation::orderBy('code')->get());
+    }
 
+    /**
+     * GET /api/translations/paginated
+     *
+     * Liste paginée (protégée Sanctum) pour la page d'administration.
+     */
+    public function paginated(Request $request): JsonResponse
+    {
         $query = Translation::query()
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = '%' . $request->search . '%';
